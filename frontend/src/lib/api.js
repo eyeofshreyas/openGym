@@ -45,15 +45,28 @@ function credToJSON(cred) {
   }
   return out
 }
-export async function passkeyRegister(name, code) {
-  const { cid, options } = await api('/api/register/options', { method: 'POST', body: JSON.stringify({ name, code: code || '' }) })
-  const cred = await navigator.credentials.create({ publicKey: toCreationOptions(options) })
-  const res = await api('/api/register/verify', { method: 'POST', body: JSON.stringify({ cid, credential: credToJSON(cred) }) })
-  return res.user
+// Only one WebAuthn ceremony can be in flight per browser; a double-click on
+// "create passkey" throws NotAllowedError on the second call, which we treat
+// as a benign cancel elsewhere. Dedup by returning the in-flight promise
+// instead of starting a second ceremony.
+let ceremony = null
+export function passkeyRegister(name, code) {
+  if (ceremony) return ceremony
+  ceremony = (async () => {
+    const { cid, options } = await api('/api/register/options', { method: 'POST', body: JSON.stringify({ name, code: code || '' }) })
+    const cred = await navigator.credentials.create({ publicKey: toCreationOptions(options) })
+    const res = await api('/api/register/verify', { method: 'POST', body: JSON.stringify({ cid, credential: credToJSON(cred) }) })
+    return res.user
+  })()
+  return ceremony.finally(() => { ceremony = null })
 }
-export async function passkeyLogin() {
-  const { cid, options } = await api('/api/login/options', { method: 'POST', body: '{}' })
-  const cred = await navigator.credentials.get({ publicKey: toRequestOptions(options) })
-  const res = await api('/api/login/verify', { method: 'POST', body: JSON.stringify({ cid, credential: credToJSON(cred) }) })
-  return res.user
+export function passkeyLogin() {
+  if (ceremony) return ceremony
+  ceremony = (async () => {
+    const { cid, options } = await api('/api/login/options', { method: 'POST', body: '{}' })
+    const cred = await navigator.credentials.get({ publicKey: toRequestOptions(options) })
+    const res = await api('/api/login/verify', { method: 'POST', body: JSON.stringify({ cid, credential: credToJSON(cred) }) })
+    return res.user
+  })()
+  return ceremony.finally(() => { ceremony = null })
 }
