@@ -6,3 +6,8 @@ dist/
 .env
 .DS_Store
 *.deb
+
+# On-device LLM weights — multi-GB, licence-gated, never in git
+*.task
+*.litertlm
+gemma-*/
