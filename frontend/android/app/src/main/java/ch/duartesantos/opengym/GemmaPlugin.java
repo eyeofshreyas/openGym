@@ -16,6 +16,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * On-device Gemma for the plan builder.
@@ -29,6 +30,11 @@ public class GemmaPlugin extends Plugin {
 
     private static final String MODEL_NAME = "gemma-model.task";
     private final ExecutorService pool = Executors.newSingleThreadExecutor();
+    // A second pickModel() while one is already outstanding would overwrite the bridge's
+    // saved PluginCall for the first with the second, orphaning that first call — its JS
+    // promise would never resolve or reject. Guard so a double-tap fails the second call
+    // fast instead of silently hanging the first.
+    private final AtomicBoolean picking = new AtomicBoolean(false);
 
     private File modelFile() {
         return new File(getContext().getFilesDir(), MODEL_NAME);
@@ -50,6 +56,10 @@ public class GemmaPlugin extends Plugin {
 
     @PluginMethod
     public void pickModel(PluginCall call) {
+        if (!picking.compareAndSet(false, true)) {
+            call.reject("pick already in progress");
+            return;
+        }
         Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT);
         i.addCategory(Intent.CATEGORY_OPENABLE);
         i.setType("*/*");
@@ -58,9 +68,13 @@ public class GemmaPlugin extends Plugin {
 
     @ActivityCallback
     private void modelPicked(PluginCall call, ActivityResult result) {
-        if (call == null) return;
+        if (call == null) {
+            picking.set(false);
+            return;
+        }
         Uri uri = result.getData() == null ? null : result.getData().getData();
         if (result.getResultCode() != Activity.RESULT_OK || uri == null) {
+            picking.set(false);
             call.reject("cancelled");
             return;
         }
@@ -77,6 +91,8 @@ public class GemmaPlugin extends Plugin {
             } catch (Exception e) {
                 modelFile().delete();   // a half-copied model is worse than none
                 call.reject(e.getMessage() == null ? "copy failed" : e.getMessage());
+            } finally {
+                picking.set(false);
             }
         });
     }
