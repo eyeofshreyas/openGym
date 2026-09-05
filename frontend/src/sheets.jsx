@@ -712,10 +712,9 @@ function PlanImport({ bundle, close }) {
   </>
 }
 
-export const aiPlanSheet = () => ui().openSheet(close => <AiPlan close={close} />)
+export const aiPlanSheet = () => ui().openSheet(close => <AiPlan close={close} />, { locked: true })
 
 function AiPlan({ close }) {
-  const st = useStore(s => s.S)
   const [days, setDays] = useState(3)
   const [equip, setEquip] = useState([])
   const [goal, setGoal] = useState('')

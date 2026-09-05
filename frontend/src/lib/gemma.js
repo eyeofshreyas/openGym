@@ -36,11 +36,21 @@ export async function removeModel() {
   try { return await p.removeModel() } catch (e) { return NONE }
 }
 
+// Only one generation can run on the native engine at a time — a second call while one is
+// outstanding could have its result torn down by the first call's `finally { unload() }`.
+// Guard here, not just in the sheet, so every caller (now and later) is covered.
+let generating = false
 export async function generate(prompt) {
-  const p = await nativePlugin()
-  if (!p) throw new Error('unavailable')
-  const r = await p.generate({ prompt })
-  return (r && r.text) || ''
+  if (generating) throw new Error('a generation is already in progress')
+  generating = true
+  try {
+    const p = await nativePlugin()
+    if (!p) throw new Error('unavailable')
+    const r = await p.generate({ prompt })
+    return (r && r.text) || ''
+  } finally {
+    generating = false
+  }
 }
 
 export async function unload() {
