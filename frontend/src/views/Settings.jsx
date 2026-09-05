@@ -10,9 +10,36 @@ import { wakeLockSupported } from '../lib/wakelock.js'
 import { t, LANGS, INSTR_LANGS } from '../lib/i18n.js'
 import { DEMO, REPO } from '../lib/demo.js'
 import { MOBILE, shareExport, syncReminder } from '../lib/mobile.js'
+import { modelStatus, pickModel, removeModel } from '../lib/gemma.js'
 import { loadStarterPlan, confirmSheet, importFromApp } from '../sheets.jsx'
 import Icon from '../components/Icon.jsx'
 import { Section, Row, SelectRow, Switch, Segmented, Button, TextField } from '../components/ui.jsx'
+
+// The model file is user-supplied: Gemma's weights are licence-gated, and an app with no
+// accounts and no server has nothing to authenticate a download with.
+function ModelRow() {
+  const [st, setSt] = useState(null)
+  useEffect(() => { modelStatus().then(setSt) }, [])
+  if (!MOBILE || !st) return null
+  const gb = st.bytes ? (st.bytes / 1e9).toFixed(1) + ' GB' : ''
+  const install = () => pickModel().then(setSt).catch(() => {})
+  return <>
+    <h4 className="sec">{t('AI plan builder')}</h4>
+    <div className="sect-b">
+      {st.installed
+        ? <Row icon="sparkles" iconTint="var(--acc)" title={t('Model installed')} subtitle={gb} />
+        : <Row icon="sparkles" iconTint="var(--grey)" title={t('Choose a model file')}
+            subtitle={t('A Gemma .task file on this phone. Plans are then built offline, on the device.')}
+            accessory="chevron" onClick={install} />}
+      {st.installed && <Row icon="trash" iconTint="var(--red)" title={t('Remove model')} danger
+        onClick={() => confirmSheet({
+          title: t('Remove the model?'), message: t('The file is deleted from this phone. The plan builder stops working until you choose another.'),
+          confirmText: t('Remove'), danger: true,
+          onConfirm: () => removeModel().then(setSt),
+        })} />}
+    </div>
+  </>
+}
 
 export default function Settings() {
   const nav = useNavigate()
@@ -97,6 +124,8 @@ export default function Settings() {
       )}
     </Section>
     {!user && !DEMO && !MOBILE && <p className="sect-f" style={{ marginTop: -18, marginBottom: 22 }}>{t('Guest mode — data lives only in this browser.')}</p>}
+
+    <ModelRow />
 
     {/* ---------- general ---------- */}
     <Section title={t('General')} footer={t('Note: switching units only changes the label — logged numbers are not converted.')}>
