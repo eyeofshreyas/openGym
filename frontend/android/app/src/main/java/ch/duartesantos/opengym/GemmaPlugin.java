@@ -10,6 +10,7 @@ import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.ActivityCallback;
 import com.getcapacitor.annotation.CapacitorPlugin;
+import com.google.mediapipe.tasks.genai.llminference.LlmInference;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
@@ -35,6 +36,7 @@ public class GemmaPlugin extends Plugin {
     // promise would never resolve or reject. Guard so a double-tap fails the second call
     // fast instead of silently hanging the first.
     private final AtomicBoolean picking = new AtomicBoolean(false);
+    private LlmInference llm;
 
     private File modelFile() {
         return new File(getContext().getFilesDir(), MODEL_NAME);
@@ -81,6 +83,7 @@ public class GemmaPlugin extends Plugin {
         // Streamed in 1 MB blocks on a background thread — a couple of gigabytes must
         // never touch the main thread or the bridge.
         pool.execute(() -> {
+            unloadModel();   // replacing a model must not leave the old one loaded
             try (InputStream in = getContext().getContentResolver().openInputStream(uri);
                  OutputStream out = new FileOutputStream(modelFile())) {
                 if (in == null) throw new IllegalStateException("cannot open file");
@@ -99,7 +102,55 @@ public class GemmaPlugin extends Plugin {
 
     @PluginMethod
     public void removeModel(PluginCall call) {
+        unloadModel();   // never leave the engine holding a file we're about to delete
         modelFile().delete();
         call.resolve(statusObject());
+    }
+
+    @PluginMethod
+    public void generate(PluginCall call) {
+        String prompt = call.getString("prompt");
+        if (prompt == null || prompt.isEmpty()) { call.reject("no prompt"); return; }
+        if (!modelFile().exists()) { call.reject("no model"); return; }
+        pool.execute(() -> {
+            try {
+                if (llm == null) {
+                    llm = LlmInference.createFromOptions(
+                        getContext(),
+                        LlmInference.LlmInferenceOptions.builder()
+                            .setModelPath(modelFile().getAbsolutePath())
+                            .setMaxTokens(1024)
+                            .build());
+                }
+                String text = llm.generateResponse(prompt);
+                JSObject r = new JSObject();
+                r.put("text", text == null ? "" : text);
+                call.resolve(r);
+            } catch (Throwable e) {
+                // An OOM here is a Throwable, not an Exception, and the engine must go
+                // with it — a half-initialised LlmInference will fail every later call.
+                unloadModel();
+                call.reject(e.getMessage() == null ? "generation failed" : e.getMessage());
+            }
+        });
+    }
+
+    @PluginMethod
+    public void unload(PluginCall call) {
+        unloadModel();
+        call.resolve();
+    }
+
+    /** The app is a WebView; the model does not stay resident behind it. */
+    @Override
+    protected void handleOnPause() {
+        unloadModel();
+    }
+
+    private synchronized void unloadModel() {
+        if (llm != null) {
+            try { llm.close(); } catch (Throwable ignored) { }
+            llm = null;
+        }
     }
 }
