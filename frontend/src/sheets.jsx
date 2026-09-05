@@ -712,9 +712,14 @@ function PlanImport({ bundle, close }) {
   </>
 }
 
-export const aiPlanSheet = () => ui().openSheet(close => <AiPlan close={close} />, { locked: true })
+// Opened unlocked, like every other sheet — backdrop/swipe dismiss it normally while idle.
+// It's locked only for the span of an actual generation (see `build` below), so an accidental
+// dismissal can't yank the sheet out from under a running native call.
+export const aiPlanSheet = () => {
+  const sheet = ui().openSheet(close => <AiPlan close={close} lock={sheet.lock} />)
+}
 
-function AiPlan({ close }) {
+function AiPlan({ close, lock }) {
   const [days, setDays] = useState(3)
   const [equip, setEquip] = useState([])
   const [goal, setGoal] = useState('')
@@ -724,6 +729,7 @@ function AiPlan({ close }) {
 
   const build = async () => {
     setBusy(true)
+    lock(true)
     try {
       const text = await generate(buildPrompt({ days, equipment: equip, goal, limits }, candidateExercises(equip)))
       const parsed = planFromModel(text)
@@ -734,6 +740,7 @@ function AiPlan({ close }) {
       toast(t('Plan builder failed: {0}', e.message || 'error'))
     } finally {
       setBusy(false)
+      lock(false)
       unload()          // the model does not stay resident behind the WebView
     }
   }
