@@ -13,7 +13,7 @@ import { modeOf, fmtSec, isBw, isPerSide, sideReps } from './history.js'
 import { uid, todayISO, DAYN, fmtNum, exCount } from './format.js'
 import { t } from './i18n.js'
 
-const PLAN_FMT = 1
+export const PLAN_FMT = 1
 const WEEK_ORDER = [1, 2, 3, 4, 5, 6, 0]   // Mon-first, matching the Plan screen
 
 // Keep only the meaningful config fields, so the file stays small and readable.
