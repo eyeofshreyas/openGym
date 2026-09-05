@@ -20,6 +20,8 @@ import { buildPlanBundle, parsePlan, mergePlan, printPlan } from './lib/plan-sha
 import { estimate1RM, best1RM, is1RMRecord, REP_CAP } from './lib/onerm.js'
 import { nextPrescription, applyPrescription, policyFor, defaultIncrement, POLICIES_FOR, POLICY_NAME, POLICY_DESC, MAX_BW_SETS } from './lib/progression.js'
 import { MOBILE, shareExport } from './lib/mobile.js'
+import { candidateExercises, buildPrompt, planFromModel } from './lib/coach.js'
+import { generate, unload } from './lib/gemma.js'
 
 const S = () => useStore.getState().S
 const update = (...a) => useStore.getState().update(...a)
@@ -707,6 +709,61 @@ function PlanImport({ bundle, close }) {
     <Button variant="primary" onClick={apply}>{t('Add to my plan')}</Button>
     <div style={{ height: 8 }} />
     <Button variant="ghost" className="dim" onClick={close}>{t('Cancel')}</Button>
+  </>
+}
+
+export const aiPlanSheet = () => ui().openSheet(close => <AiPlan close={close} />)
+
+function AiPlan({ close }) {
+  const st = useStore(s => s.S)
+  const [days, setDays] = useState(3)
+  const [equip, setEquip] = useState([])
+  const [goal, setGoal] = useState('')
+  const [limits, setLimits] = useState('')
+  const [busy, setBusy] = useState(false)
+  const allEquip = equipmentOf(EXDB).slice(0, 12)
+
+  const build = async () => {
+    setBusy(true)
+    try {
+      const text = await generate(buildPrompt({ days, equipment: equip, goal, limits }, candidateExercises(equip)))
+      const parsed = planFromModel(text)
+      if (!parsed) { toast(t('Couldn’t build a plan from that — try again, or add more detail.')); return }
+      close()
+      planImportSheet(parsed)
+    } catch (e) {
+      toast(t('Plan builder failed: {0}', e.message || 'error'))
+    } finally {
+      setBusy(false)
+      unload()          // the model does not stay resident behind the WebView
+    }
+  }
+
+  return <>
+    <h3>{t('Build a plan')}</h3>
+    <div className="muted small" style={{ marginBottom: 14 }}>
+      {t('Runs on this phone — nothing is sent anywhere. You review everything before it’s added.')}
+    </div>
+    <div className="row cfgrow" style={{ marginBottom: 16 }}>
+      <Stepper label={t('Days per week')} value={days} step={1} decimal={false}
+        onChange={v => setDays(Math.min(6, Math.max(1, Math.round(v) || 1)))} />
+    </div>
+    <h4 className="sec">{t('Equipment you have')}</h4>
+    <div className="row" style={{ gap: 6, flexWrap: 'wrap', marginBottom: 16 }}>
+      {allEquip.map(eq => <button key={eq} className={'tag' + (equip.includes(eq) ? ' acc' : '')}
+        onClick={() => setEquip(x => x.includes(eq) ? x.filter(y => y !== eq) : [...x, eq])}>{t(eq)}</button>)}
+    </div>
+    <div className="dim small" style={{ marginBottom: 16 }}>{t('Pick none to allow anything.')}</div>
+    <input className="input" placeholder={t('Goal — strength, muscle, general fitness…')}
+      value={goal} maxLength={80} onChange={e => setGoal(e.target.value)} />
+    <div style={{ height: 8 }} />
+    <textarea className="input" rows={2} maxLength={200} placeholder={t('Anything to work around? Injuries, time per session…')}
+      value={limits} onChange={e => setLimits(e.target.value)} />
+    <div style={{ height: 14 }} />
+    <Button variant="primary" icon="sparkles" disabled={busy} onClick={build}>
+      {busy ? t('Building… this takes a moment') : t('Build my week')}
+    </Button>
+    {busy && <><div style={{ height: 8 }} /><Button variant="ghost" className="dim" onClick={close}>{t('Cancel')}</Button></>}
   </>
 }
 
