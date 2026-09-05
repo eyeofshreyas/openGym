@@ -26,7 +26,7 @@ So the honest status is: *this compiles and has been reviewed hard, and it might
 | 3 | `1eb2951`, `7454f91` | `GemmaPlugin.java` — model file install/remove, double-tap guard |
 | 4 | `8da8f9e`, `036a2c2` | MediaPipe inference, engine-race fix, `abiFilters`, APK 62 MB → 20 MB |
 | 5 | `25f0202` | `lib/gemma.js` bridge + Settings model row |
-| 6 | `dd64180`, `bcd8eac`, *(round 2 in flight)* | Brief sheet + Plan entry point, concurrent-generate guard |
+| 6 | `dd64180`, `bcd8eac`, `5d38341` | Brief sheet + Plan entry point, concurrent-generate guard, dynamic sheet lock |
 | 0 | — | **NOT RUN** — the device spike |
 | 7 | — | **NOT DONE** — MOBILE.md, README, CHANGELOG |
 
@@ -125,6 +125,11 @@ Whoever finishes this should assume there is a fourth.
   wrapped. Unreachable today, but the two combine into a live bug if anyone adds a `shutdown()`.
 - The APK is now `arm64-v8a` only, so it will not install on x86 emulators.
 - Task 7's docs are unwritten: MOBILE.md, README and CHANGELOG say nothing about this feature.
+  This was deliberate — announcing a feature that has never executed would mean retracting the
+  CHANGELOG entry if the spike fails. Write them once the spike passes.
+- No final whole-branch review has run. Each task was reviewed individually with its fix rounds
+  closed, but `gemma.js` was written in Task 5 and amended by Task 6's fix, and no single review
+  has seen that seam whole. Worth running before this merges anywhere.
 
 ## Unrelated, still uncommitted on `develop`
 
