@@ -123,6 +123,9 @@ function ExerciseBlock({ entryIdx, compact, onToggle, onField, onAddSet, onRemov
       {ex.eq && <span className="tag">{t(ex.eq)}</span>}
       {best > 0 && <span className="tag nocap">{t('Best:')} {fmtNum(best)} {S.unit}</span>}
     </div>
+    {/* The cue you wrote in the routine, in front of you while you do the set — which is the
+        only moment it is worth anything. Edited from the same config sheet it was written in. */}
+    {entry.target && entry.target.note && <div className="exnote" style={{ marginBottom: 8 }}>{entry.target.note}</div>}
     {last && <div className="small dim" style={{ marginBottom: 4 }}>{t('Last time')} ({fmtDate(last.d)}): {last.sets.map(s => setLabel(entry.id, s, last.target)).join(', ')}</div>}
     {plan && plan.why && plan.kind !== 'off' && <div className={'progline' + (plan.kind === 'deload' ? ' warn' : '')}>
       <Icon name={plan.kind === 'up' ? 'arrowUp' : plan.kind === 'deload' ? 'arrowDown' : 'lightbulb'} />
@@ -149,6 +152,18 @@ function ExerciseBlock({ entryIdx, compact, onToggle, onField, onAddSet, onRemov
       </div>
     </div>
   </>
+}
+
+/* ---------- workout note ----------
+   Typed locally and committed on blur: every update() clones the whole state, writes
+   localStorage and schedules a sync, which is not something to do per keystroke. */
+function WorkoutNote() {
+  const update = useStore(s => s.update)
+  const [v, setV] = useState(() => useStore.getState().S.active?.note || '')
+  const commit = () => update(s => { if (s.active) s.active.note = v.trim() || undefined })
+  return <textarea className="input" rows={2} maxLength={1000} value={v}
+    placeholder={t('Workout note (optional) — how it went, what to change next time')}
+    onChange={e => setV(e.target.value)} onBlur={commit} />
 }
 
 /* ---------- active workout ---------- */
@@ -287,6 +302,8 @@ function ActiveWorkout() {
       s.active.entries.push({ id: ex.id, target: { ...cfg }, plan, sets: applyPrescription(buildSets(s, full), plan) })
       s.active.cur = s.active.entries.length - 1
     }), null, S.routines.find(r => r.id === A.routineId)))} icon="plus">{t('Add exercise')}</Button>
+    <div style={{ height: 10 }} />
+    <WorkoutNote />
     <div style={{ height: 10 }} />
     {(() => {
       const exDone = A.entries.filter(e => e.sets.length && e.sets.every(s => s.done)).length

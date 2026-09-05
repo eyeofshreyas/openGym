@@ -45,6 +45,9 @@ function cleanEx(e) {
   if (e.repsMin != null) o.repsMin = e.repsMin
   if (e.repsMax != null) o.repsMax = e.repsMax
   if (e.sg) o.sg = e.sg
+  // The cue is part of the plan — a shared routine that drops "seat at 4, elbows tucked"
+  // arrives missing the half you can't work out from the numbers. Trimmed on the way in.
+  if (e.note) o.note = String(e.note).slice(0, 500)
   return o
 }
 
@@ -174,7 +177,9 @@ function routineHTML(r, unit) {
       const ex = EXIDX[e.id]
       const name = ex ? ex.n : t('Unknown exercise')
       const part = ex && ex.bp && ex.bp !== 'cardio' ? `<span class="part">${esc(ex.bp)}</span>` : ''
-      return `<div class="ex"><div class="ex-n">${esc(name)}${part}</div><div class="ex-s">${esc(scheme(e, unit))}</div></div>`
+      // The cue prints under the name: a plan read at the rack is exactly where it's wanted.
+      const note = e.note ? `<div class="ex-note">${esc(e.note)}</div>` : ''
+      return `<div class="ex"><div class="ex-n">${esc(name)}${part}${note}</div><div class="ex-s">${esc(scheme(e, unit))}</div></div>`
     }).join('')
     return u.length > 1
       ? `<div class="ss"><div class="ss-tag">${esc(t('Superset'))}</div><div class="ss-items">${items}</div></div>`
@@ -241,6 +246,7 @@ export function planPrintHTML(S, owner) {
   .ex-n { text-transform: capitalize; font-weight: 500; }
   .ex-n .part { text-transform: capitalize; color: #9aa0ae; font-weight: 400; font-size: 12px; margin-left: 8px; }
   .ex-s { color: #3d424e; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .ex-note { text-transform: none; font-weight: 400; font-size: 12px; color: #6b7280; margin-top: 2px; white-space: pre-wrap; max-width: 52ch; }
   .ex.empty, .none { color: #a2a8b6; }
 
   .ss { break-inside: avoid; page-break-inside: avoid; border-left: 3px solid #cfe08a; padding-left: 12px; margin: 4px 0; }
