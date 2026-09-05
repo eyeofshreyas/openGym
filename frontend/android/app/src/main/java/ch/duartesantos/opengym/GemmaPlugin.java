@@ -102,11 +102,17 @@ public class GemmaPlugin extends Plugin {
 
     @PluginMethod
     public void removeModel(PluginCall call) {
-        unloadModel();   // never leave the engine holding a file we're about to delete
-        modelFile().delete();
-        call.resolve(statusObject());
+        // Unload and delete on the pool thread so the delete can't race a live engine
+        // that's still reading the file's mmap'd pages on that same thread.
+        pool.execute(() -> {
+            unloadModel();   // never leave the engine holding a file we're about to delete
+            modelFile().delete();
+            call.resolve(statusObject());
+        });
     }
 
+    // Deliberately leaves the engine loaded on success — a follow-up generate() skips the
+    // multi-second reload. The caller must call unload() when done, or ~2 GB stays resident.
     @PluginMethod
     public void generate(PluginCall call) {
         String prompt = call.getString("prompt");
@@ -137,14 +143,23 @@ public class GemmaPlugin extends Plugin {
 
     @PluginMethod
     public void unload(PluginCall call) {
-        unloadModel();
-        call.resolve();
+        // Routed through the pool too — unloadModel() must never run on a different
+        // thread than the one generate() is reading llm on.
+        pool.execute(() -> {
+            unloadModel();
+            call.resolve();
+        });
     }
 
-    /** The app is a WebView; the model does not stay resident behind it. */
+    /**
+     * The app is a WebView; the model does not stay resident behind it. Submitted to the
+     * pool rather than run inline: this fires on the main thread, and blocking it here
+     * for however long the pool is busy (mid-generation) would trade a native crash for
+     * a guaranteed ANR.
+     */
     @Override
     protected void handleOnPause() {
-        unloadModel();
+        pool.execute(this::unloadModel);
     }
 
     private synchronized void unloadModel() {
