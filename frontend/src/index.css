@@ -800,6 +800,8 @@ h4.sec{
 .mchips{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
 .mchip{font-size:12px;padding:4px 9px;border-radius:99px;background:var(--surface-2);color:var(--label-2)}
 .mchip.miss{background:color-mix(in srgb,var(--orange) 16%,transparent);color:var(--orange)}
+/* trained, but short of the weekly band — a softer signal than not trained at all */
+.mchip.thin{background:color-mix(in srgb,var(--yellow) 14%,transparent);color:var(--yellow)}
 
 /* --- stat tiles --- */
 .tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}

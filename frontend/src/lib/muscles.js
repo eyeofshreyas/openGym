@@ -20,6 +20,25 @@ export const MUSCLES = [
   'calves', 'tibialis',
 ]
 
+/**
+ * The muscles the weekly set target is about, and the target itself.
+ *
+ * 10–20 hard-ish sets per muscle per week is the range most hypertrophy guidance lands on.
+ * It is guidance about the muscles people train directly: applied to shins, serratus, hip
+ * flexors, adductors, obliques and forearms it would mark them short forever, which teaches
+ * you to ignore the reading on the ones it does describe. Those six get a number and no
+ * verdict.
+ *
+ * One band for everyone rather than a per-muscle table or a setting: a number nobody knows
+ * how to choose is worse than a sane default, and the card is a balance check, not a
+ * prescription.
+ */
+export const WEEKLY_TARGET = { min: 10, max: 20 }
+export const TARGETED = [
+  'trapezius', 'deltoids', 'chest', 'upper-back', 'biceps', 'triceps',
+  'abs', 'lower-back', 'gluteal', 'quadriceps', 'hamstring', 'calves',
+]
+
 // Drawn as the silhouette, never shaded: they carry no training load.
 export const INERT = ['head', 'hair', 'neck', 'hands', 'feet', 'knees', 'ankles']
 
@@ -139,4 +158,36 @@ export function rankOf(load) {
   const worked = MUSCLES.filter(m => (load[m] || 0) > 0).sort((a, b) => load[b] - load[a])
   const missed = MUSCLES.filter(m => !(load[m] > 0))
   return { worked, missed }
+}
+
+/**
+ * How many weeks a window covers, so a load measured over it can be read as a weekly rate.
+ *
+ * A fixed window is its own length. The open one spans the training rather than the
+ * calendar — first logged workout to last — because dividing a year of history by the weeks
+ * since someone's first session punishes them for the months they took off, and the card is
+ * asking "is this balanced", not "were you consistent".
+ *
+ * Never less than one: a window shorter than a week would multiply a single session up into
+ * a rate nobody trained at.
+ */
+export function weeksOfWindow(win, workouts) {
+  if (win > 0) return Math.max(1, win / 7)
+  const ds = (workouts || []).map(w => w.d).filter(Boolean).sort()
+  if (ds.length < 2) return 1
+  const days = (new Date(ds[ds.length - 1]) - new Date(ds[0])) / 86400000
+  return Math.max(1, days / 7)
+}
+
+/** A window's load for one muscle, as sets per week — the number the target is read against. */
+export const perWeek = (load, weeks) => Math.round((load || 0) / Math.max(1, weeks || 0) * 10) / 10
+
+/**
+ * How a weekly rate reads against the band — or null for a muscle the band says nothing
+ * about, which is the caller's cue to show the number without a verdict.
+ */
+export function statusOf(muscle, rate) {
+  if (!TARGETED.includes(muscle)) return null
+  if (rate < WEEKLY_TARGET.min) return 'under'
+  return rate > WEEKLY_TARGET.max ? 'over' : 'in'
 }

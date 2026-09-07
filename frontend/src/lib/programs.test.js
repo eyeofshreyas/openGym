@@ -1,21 +1,19 @@
 import { describe, it, expect } from 'vitest'
 import { PROGRAMS, programBundle, daysOf } from './programs.js'
 import { EXIDX, isBodyweightEq } from './exercises.js'
-import { MUSCLE_NAME, loadOfRoutine } from './muscles.js'
+import { MUSCLE_NAME, loadOfRoutine, TARGETED } from './muscles.js'
 import { POLICIES_FOR } from './progression.js'
 import { mergePlan } from './plan-share.js'
 
 const bundles = (unit = 'kg') => PROGRAMS.map(p => [p, programBundle(p, unit)])
 
-// The muscles every serious week is expected to train. Deliberately not all eighteen: the
-// starter plan reaches the last few (serratus, shins, hip flexors) because it has three days
-// to fill and does it on purpose — a faithful PHUL or Arnold week does not, and padding one
-// out to pass a test would mean shipping a plan under a name it doesn't follow. The starter's
-// own full-coverage assertion lives in starter.test.js.
-const MAJOR = [
-  'trapezius', 'deltoids', 'chest', 'upper-back', 'biceps', 'triceps',
-  'abs', 'lower-back', 'gluteal', 'quadriceps', 'hamstring', 'calves',
-]
+// The muscles every serious week is expected to train — the same ones the weekly set target
+// speaks for. Deliberately not all eighteen: the starter plan reaches the last few (serratus,
+// shins, hip flexors) because it has three days to fill and does it on purpose. A faithful
+// PHUL or Arnold week does not, and padding one out to pass a test would mean shipping a plan
+// under a name it doesn't follow. The starter's own full-coverage assertion is in
+// starter.test.js.
+const MAJOR = TARGETED
 
 const weekLoad = bundle => {
   const load = {}

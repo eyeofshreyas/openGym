@@ -10,7 +10,7 @@ import LineChart from '../components/LineChart.jsx'
 import Heatmap from '../components/Heatmap.jsx'
 import Icon from '../components/Icon.jsx'
 import BodyMap, { BodyMapLegend } from '../components/BodyMap.jsx'
-import { loadOfWorkouts, rankOf, MUSCLE_NAME } from '../lib/muscles.js'
+import { loadOfWorkouts, rankOf, MUSCLE_NAME, TARGETED, WEEKLY_TARGET, perWeek, statusOf, weeksOfWindow } from '../lib/muscles.js'
 import { e1rmSeries, best1RM } from '../lib/onerm.js'
 import {
   hasEffort, displayScale, scaleName, toScale, avgRir, effortSummary, effortWeeks,
@@ -39,11 +39,21 @@ function MuscleBalance({ S }) {
   const { worked, missed } = rankOf(load)
   const top = worked.slice(0, 4)
   const max = worked.length ? load[worked[0]] : 0
-  const sets = m => Math.round((load[m] || 0) * 10) / 10
+  // Every window reads as the same unit — sets per week — or the target would mean one thing
+  // on the 7-day view and something four times smaller on the 30-day one.
+  const weeks = weeksOfWindow(win, inWin)
+  const rate = m => perWeek(load[m] || 0, weeks)
+  // The band describes ordinary working sets. In hard-set mode the numbers are a subset of
+  // those, so 10-20 is not the range to read them against and no verdict is offered.
+  const verdict = m => (on ? null : statusOf(m, rate(m)))
+  const tint = m => ({ under: 'var(--orange)', over: 'var(--yellow)' })[verdict(m)]
+  // Trained, but not enough of it — the gap the card could not show before, since a muscle
+  // worked once and one worked twelve times both just looked "worked".
+  const thin = on ? [] : TARGETED.filter(m => load[m] > 0 && verdict(m) === 'under')
 
   return <div className="card">
     <div className="row between" style={{ marginBottom: 8 }}>
-      <h2 style={{ margin: 0 }}>{t('Muscle balance')} <span className="dim" style={{ textTransform: 'none', letterSpacing: 0 }}>· {on ? t('by hard sets') : t('by sets worked')}</span></h2>
+      <h2 style={{ margin: 0 }}>{t('Muscle balance')} <span className="dim" style={{ textTransform: 'none', letterSpacing: 0 }}>· {on ? t('hard sets per week') : t('sets per week')}</span></h2>
       {rated && <Button size="sm" icon="flame" style={on ? { color: 'var(--yellow)' } : undefined}
         onClick={() => { setHard(h => !h); setSel(null) }}>{on ? t('Hard') : t('All')}</Button>}
     </div>
@@ -55,18 +65,22 @@ function MuscleBalance({ S }) {
       <BodyMapLegend />
       {sel && <div className="mrow" style={{ borderTop: 'var(--hair) solid var(--sep)', marginTop: 4, paddingTop: 10 }}>
         <span className="nm"><b>{t(MUSCLE_NAME[sel])}</b></span>
-        <span className="v">{sets(sel) ? t('{0} sets', sets(sel)) : on ? t('no hard sets') : t('not trained')}</span>
+        <span className="v" style={{ color: tint(sel) }}>{rate(sel) ? rate(sel) : on ? t('no hard sets') : t('not trained')}</span>
       </div>}
       {!sel && top.map(m => <div key={m} className="mrow">
         <span className="nm">{t(MUSCLE_NAME[m])}</span>
         <span className="bar"><i style={{ width: Math.round(load[m] / max * 100) + '%', background: on ? 'var(--yellow)' : undefined }} /></span>
-        <span className="v">{t('{0} sets', sets(m))}</span>
+        <span className="v" style={{ color: tint(m) }}>{rate(m)}</span>
       </div>)}
       {missed.length > 0 && <>
         <h4 className="sec" style={{ marginTop: 12 }}>{on ? t('No hard sets in this period') : t('Not trained in this period')}</h4>
         <div className="mchips">{missed.map(m => <span key={m} className="mchip miss">{t(MUSCLE_NAME[m])}</span>)}</div>
       </>}
-      {!missed.length && worked.length > 0 &&
+      {thin.length > 0 && <>
+        <h4 className="sec" style={{ marginTop: 12 }}>{t('Under {0} sets a week', WEEKLY_TARGET.min)}</h4>
+        <div className="mchips">{thin.map(m => <span key={m} className="mchip thin">{t(MUSCLE_NAME[m])} · {rate(m)}</span>)}</div>
+      </>}
+      {!missed.length && !thin.length && worked.length > 0 &&
         <div className="muted small" style={{ marginTop: 10 }}>{on
           ? t('Every muscle group got at least one hard set in this period.')
           : t('Every muscle group got some work in this period.')}</div>}
