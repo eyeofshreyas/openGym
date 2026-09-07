@@ -11,12 +11,13 @@ import { PROGRAMS, programBundle, daysOf } from './lib/programs.js'
 import Media, { Thumb } from './components/Media.jsx'
 import Stepper from './components/Stepper.jsx'
 import Icon from './components/Icon.jsx'
-import { Button, Slider, Switch, Segmented, SelectRow, Row } from './components/ui.jsx'
+import { Button, Slider, Switch, Segmented, SelectRow, Row, NumberField } from './components/ui.jsx'
 import { glyphOf, GLYPH_GROUPS, DEFAULT_GLYPH } from './lib/glyphs.js'
 import BodyMap from './components/BodyMap.jsx'
 import { loadOfWorkouts } from './lib/muscles.js'
 import { parseImport, mergeImport } from './lib/import-csv.js'
 import { buildPlanBundle, parsePlan, mergePlan, printPlan } from './lib/plan-share.js'
+import { MEASURES, lengthUnit, logMeasures, delMeasure, latestOf } from './lib/measures.js'
 import { estimate1RM, best1RM, is1RMRecord, REP_CAP } from './lib/onerm.js'
 import { nextPrescription, applyPrescription, policyFor, defaultIncrement, POLICIES_FOR, POLICY_NAME, POLICY_DESC, MAX_BW_SETS } from './lib/progression.js'
 import { MOBILE, shareExport } from './lib/mobile.js'
@@ -122,6 +123,70 @@ export function bwSheet(opts = {}) {
   const h = ui().openSheet(close => <BwSheet {...opts} close={close} />, { locked: !!opts.required })
   return h
 }
+
+/* ============================ body measurements ============================ */
+// One sheet for all eight, because that is how they are taken: tape measure, one sitting,
+// write them all down. Eight separate log actions would be eight times the friction for the
+// same five minutes.
+function MeasuresSheet({ close }) {
+  const st = useStore(s => s.S)
+  const unit = lengthUnit(st)
+  // Prefilled from your last entry so the common case is adjusting a couple of numbers, not
+  // typing eight from scratch — and empty stays empty, which is what "not today" writes.
+  const [v, setV] = useState(() => Object.fromEntries(
+    MEASURES.map(m => [m.k, latestOf(st.measures?.[m.k])?.v ?? ''])))
+
+  const save = () => {
+    let n = 0
+    update(s => { n = logMeasures(s, v, todayISO()) })   // update() runs the mutator, it doesn't return from it
+    close()
+    toast(n ? t('Measurements saved') : t('Nothing to save — fill in at least one'))
+  }
+  return <>
+    <h3>{t('Log measurements')}</h3>
+    <div className="muted small" style={{ marginBottom: 12 }}>
+      {t('Today') + ', ' + fmtDate(todayISO(), true) + ' · ' + unit}
+    </div>
+    <div className="sect-b">
+      {MEASURES.map(m => <div key={m.k} className="row between" style={{ padding: '7px 2px', borderBottom: '1px solid var(--sep)', gap: 12 }}>
+        <span className="tt" style={{ fontSize: 15 }}>{t(m.name)}</span>
+        {/* `.num` is only styled inside a stepper, so a bare NumberField renders as an
+            unstyled browser box — it takes the app's field class here. */}
+        <span style={{ width: 104 }}><NumberField nullable className="input" value={v[m.k]}
+          style={{ textAlign: 'right', padding: '9px 12px', fontSize: 16, background: 'var(--surface-2)' }}
+          onChange={x => setV(o => ({ ...o, [m.k]: x ?? '' }))} /></span>
+      </div>)}
+    </div>
+    <div style={{ height: 14 }} />
+    <Button variant="primary" onClick={save}>{t('Save')}</Button>
+    <div className="dim small" style={{ margin: '9px 2px 0', lineHeight: 1.4 }}>
+      {t('Leave a measurement blank to skip it — what you logged before is kept.')}
+    </div>
+  </>
+}
+export const measuresSheet = () => ui().openSheet(close => <MeasuresSheet close={close} />)
+
+// The history for one measurement, and the only place an entry can be removed.
+function MeasureHistory({ mk, close }) {
+  const st = useStore(s => s.S)
+  const unit = lengthUnit(st)
+  const m = MEASURES.find(x => x.k === mk)
+  const rows = [...(st.measures?.[mk] || [])].reverse()
+  return <>
+    <h3>{t(m.name)}</h3>
+    {rows.length ? <div className="list" style={{ gap: 0 }}>
+      {rows.map(e => <div key={e.d} className="row between" style={{ padding: '9px 2px', borderBottom: '1px solid var(--sep)' }}>
+        <span className="small muted">{fmtDate(e.d, true)}</span>
+        <span className="row" style={{ gap: 12 }}><b>{fmtNum(e.v)} {unit}</b>
+          <button className="iconbtn" style={{ width: 32, height: 30, borderRadius: 8, fontSize: 15, color: 'var(--red)' }}
+            onClick={() => update(s => delMeasure(s, mk, e.d))} aria-label="delete"><Icon name="trash" /></button></span>
+      </div>)}
+    </div> : <div className="muted small">{t('Nothing logged yet.')}</div>}
+    <div style={{ height: 14 }} />
+    <Button variant="ghost" onClick={close}>{t('Done')}</Button>
+  </>
+}
+export const measureHistorySheet = mk => ui().openSheet(close => <MeasureHistory mk={mk} close={close} />)
 
 /* ============================ import from another app ============================ */
 // Shows what a parsed export would actually do before anything is written. An import is

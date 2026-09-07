@@ -4,12 +4,13 @@ import { localTZ } from '../lib/format.js'
 import { registerCustom } from '../lib/exercises.js'
 import { DEMO, DEMO_SEEDED } from '../lib/demo.js'
 import { MOBILE, nativeLoad, nativeSave, syncReminder } from '../lib/mobile.js'
+import { anyMeasures } from '../lib/measures.js'
 
 const KEY = 'gym_state_v1'
 export const DEF = {
   unit: 'kg', restSec: 90, sound: true, keepAwake: true, lang: 'en',
   theme: 'dark', accent: 'lime', body: 'male', targetW: null,
-  bodyweight: [], routines: [], week: {}, dayPlan: {},
+  bodyweight: [], measures: {}, routines: [], week: {}, dayPlan: {},
   exWeights: {}, workouts: [], active: null, customEx: [], gifSize: 'full',
   // effort: which per-set effort scale is logged — 'none' | 'rir' | 'rpe'. null, not 'none', so
   // that a profile which never chose (loaded state is overlaid on DEF, on every path: local,
@@ -27,7 +28,11 @@ function loadState() {
   return clone(DEF)
 }
 
-const hasData = st => !!((st.workouts || []).length || (st.routines || []).length || (st.bodyweight || []).length)
+// What counts as "this profile has something worth keeping" — it decides whether a pull can
+// overwrite local state. Measurements belong in it: someone who has only ever logged a waist
+// would otherwise read as empty and have it silently replaced on sign-in.
+const hasData = st => !!((st.workouts || []).length || (st.routines || []).length
+  || (st.bodyweight || []).length || anyMeasures(st.measures))
 
 export const useStore = create((set, get) => {
   let pushTm = null

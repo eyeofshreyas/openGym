@@ -5,12 +5,13 @@ import { EXIDX } from '../lib/exercises.js'
 import { lastBW, streakWeeks, setLabel, modeOf, effortOf } from '../lib/history.js'
 import { fmtNum, fmtDate, fmtVol, todayISO, weekKey } from '../lib/format.js'
 import { t } from '../lib/i18n.js'
-import { bwSheet, goalSheet, calendarSheet, workoutDetailSheet, WorkoutRow, bwDeltaColor } from '../sheets.jsx'
+import { bwSheet, goalSheet, calendarSheet, workoutDetailSheet, WorkoutRow, bwDeltaColor, measuresSheet, measureHistorySheet } from '../sheets.jsx'
 import LineChart from '../components/LineChart.jsx'
 import Heatmap from '../components/Heatmap.jsx'
 import Icon from '../components/Icon.jsx'
 import BodyMap, { BodyMapLegend } from '../components/BodyMap.jsx'
 import { loadOfWorkouts, rankOf, MUSCLE_NAME, TARGETED, WEEKLY_TARGET, perWeek, statusOf, weeksOfWindow } from '../lib/muscles.js'
+import { MEASURES, lengthUnit, latestOf, pointsOf, deltaOf } from '../lib/measures.js'
 import { e1rmSeries, best1RM } from '../lib/onerm.js'
 import {
   hasEffort, displayScale, scaleName, toScale, avgRir, effortSummary, effortWeeks,
@@ -144,6 +145,49 @@ function EffortCard({ S }) {
 }
 
 // Stats = the analytics hub: all charts, progress and history live here.
+// The tape-measure numbers. One card, one measurement at a time — eight charts at once would
+// say less than one chart you chose. Which one you are looking at is the only state it keeps.
+function Measurements({ S }) {
+  const [mk, setMk] = useState('waist')
+  const [range, setRange] = useState(90)
+  const unit = lengthUnit(S)
+  const series = S.measures?.[mk] || []
+  const last = latestOf(series)
+  const delta = deltaOf(series, range)
+  const any = MEASURES.some(m => (S.measures?.[m.k] || []).length)
+
+  return <div className="card">
+    <div className="row between" style={{ marginBottom: 8 }}>
+      <h2 style={{ margin: 0 }}>{t('Measurements')}</h2>
+      <div className="row" style={{ gap: 8 }}>
+        {series.length > 0 && <Button size="sm" icon="list" onClick={() => measureHistorySheet(mk)}>{t('History')}</Button>}
+        <Button size="sm" icon="plus" onClick={measuresSheet}>{t('Log')}</Button>
+      </div>
+    </div>
+    {any ? <>
+      <div className="sect-b" style={{ marginBottom: 10 }}>
+        <SelectRow title={t('Measurement')} sheetTitle={t('Measurements')} value={mk} onChange={setMk}
+          options={MEASURES.map(m => ({ value: m.k, label: t(m.name) }))} />
+      </div>
+      {last ? <>
+        <div className="row" style={{ gap: 10, alignItems: 'baseline', marginBottom: 2 }}>
+          <span style={{ fontSize: 26, fontWeight: 600, letterSpacing: '-.026em' }}>{fmtNum(last.v)}<span className="dim" style={{ fontSize: 15 }}> {unit}</span></span>
+          {/* No goal line and no colour: a waist going down and an arm going up are both
+              progress to somebody, and the app has not been told which you are after. */}
+          {delta != null && <span className="small dim">{(delta > 0 ? '+' : '') + fmtNum(delta)} {unit} {t('over this range')}</span>}
+        </div>
+        <Segmented className="seg-range" value={range} onChange={setRange}
+          options={[{ value: 30, label: '1M' }, { value: 90, label: '3M' }, { value: 365, label: '1Y' }, { value: 0, label: t('All') }]} />
+        {/* One point is not a curve — the chart draws it as a wedge running off the left
+            edge, which is what everyone's first measurement would look like. */}
+        {pointsOf(series, range).length > 1
+          ? <div className="chart"><LineChart points={pointsOf(series, range)} h={160} unit={unit} color="var(--blue)" /></div>
+          : <div className="muted small" style={{ marginTop: 10 }}>{t('One entry so far — log it again another day and the curve starts.')}</div>}
+      </> : <div className="muted small" style={{ marginTop: 6 }}>{t('Nothing logged for this one yet.')}</div>}
+    </> : <div className="muted small">{t('Waist, chest, arms — measured with a tape, tracked like your weight. Log a few and the curve starts here.')}</div>}
+  </div>
+}
+
 export default function Stats() {
   const nav = useNavigate()
   const S = useStore(s => s.S)
@@ -240,6 +284,8 @@ export default function Stats() {
           options={[{ value: 30, label: '1M' }, { value: 90, label: '3M' }, { value: 365, label: '1Y' }, { value: 0, label: t('All') }]} />
         <div className="chart"><LineChart points={bwPts} h={160} unit={S.unit} goal={S.targetW} /></div>
       </div>
+
+      <Measurements S={S} />
 
       <div className="card">
         <h2>{t('Exercise progress')}</h2>
