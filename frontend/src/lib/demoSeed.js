@@ -8,8 +8,11 @@ import { modeOf } from './history.js'
 // Chest dips are body-weight only here, so they log reps at 0 added weight.
 const PROG = {
   '0025': [60, 1.25], '0047': [45, 1], '0426': [20, 0.5], '0334': [10, 0.25], '0241': [25, 0.75], '0251': [0, 0],
+  '0328': [8, 0.25], '0687': [0, 0],
   '2330': [50, 1.25], '0027': [50, 1], '1323': [45, 1], '0031': [30, 0.5], '0313': [12, 0.3],
-  '0043': [70, 1.5], '0085': [60, 1.25], '0739': [120, 3], '0585': [45, 1], '0586': [40, 1], '0605': [60, 1.5]
+  '0095': [60, 1.5], '0489': [0, 0], '0472': [0, 0],
+  '0043': [70, 1.5], '0085': [60, 1.25], '0739': [120, 3], '0585': [45, 1], '0586': [40, 1], '0605': [60, 1.5],
+  '0598': [35, 1], '1396': [30, 1]
 }
 const WEEKS = 12                       // how much history to fabricate
 const BW_FROM = 82.4, BW_TO = 78.3     // body-weight trend across those weeks
@@ -22,13 +25,16 @@ const TARGET_W = 77
 // back off it, another block going a little deeper than the first.
 const DELOAD_WEEK = 5
 // Reps left in the tank the block is aiming for, by week.
+// The second block has to end clearly deeper than the first, not deeper by a hair: the whole
+// history is one random draw, and a margin thinner than the per-set noise flips which week
+// reads as the hardest whenever anything upstream consumes a different number of draws.
 const weekTarget = wk =>
   wk === DELOAD_WEEK ? 4.5
     : wk < DELOAD_WEEK ? 2.8 - wk * 0.3
-      : 2.6 - (wk - DELOAD_WEEK - 1) * 0.26
+      : 2.5 - (wk - DELOAD_WEEK - 1) * 0.3
 // Leg day is trained further from failure than the upper body — deliberate, so the muscle
 // map's "hard sets" mode shows a different picture from its all-sets mode.
-const EASY = new Set(['0043', '0085', '0739', '0585', '0586'])
+const EASY = new Set(['0043', '0085', '0739', '0585', '0586', '0598', '1396'])
 // One exercise nobody ever rates: partial coverage is the normal case (rating is optional and
 // off by default), and it shows the per-exercise Effort toggle correctly staying away.
 const NEVER_RATED = '0605'
