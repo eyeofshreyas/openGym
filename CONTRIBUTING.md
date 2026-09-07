@@ -17,13 +17,25 @@ docs/      self-hosting guide.
 ## Running for development
 
 ```bash
-cp .env.example .env
-docker compose up -d --build      # api + web + media on :8080
-# frontend hot reload:
-cd frontend && npm install && npm run dev
-# training logic (progression rules, 1RM, how a session is read back):
-cd frontend && npm test
+./start.sh                        # api :3000 + media :8888 + vite :5173 — ctrl-c stops all
+cd frontend && npm test           # training logic (progression rules, 1RM, reading a session back)
 ```
+
+`start.sh` is the whole dev stack and needs no Docker. It points passkeys at `localhost`
+rather than whatever `.env` deploys to, serves `./media` on the port Vite's proxy expects, and
+keeps its profiles in `./data-dev` so it never writes the deployment's `./data`. Override any
+of that with `DEV_WEB_PORT`, `DEV_RP_ID`, `DATA_DIR` and friends.
+
+To run it the way it actually ships instead:
+
+```bash
+cp .env.example .env
+docker compose up -d --build      # app on :8080
+```
+
+Note that compose only publishes `:8080` — the API and media stay inside its network — so
+`npm run dev` on its own has nothing to proxy `/api` and `/gif` to. That's what `start.sh` is
+for; if you'd rather point Vite at a running stack, set `API_TARGET=http://localhost:8080`.
 
 ## Guidelines
 
