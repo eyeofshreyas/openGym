@@ -14,7 +14,7 @@ const musclesOf = e => new Set([e.tg, ...(e.sm || [])].filter(Boolean))
 // them level. The movement words in the name are what separate them: "bench press" shares two
 // words with "dumbbell bench press" and none with "behind head chest stretch". Equipment words
 // are dropped — matching on those would fight the whole point of looking for another implement.
-const EQ_WORDS = new Set(['barbell', 'dumbbell', 'cable', 'band', 'machine', 'leverage', 'smith', 'sled',
+const EQ_WORDS = new Set(['barbell', 'dumbbell', 'cable', 'band', 'machine', 'leverage', 'lever', 'smith', 'sled',
   'kettlebell', 'ez', 'bar', 'weighted', 'assisted', 'body', 'weight', 'bodyweight', 'stability', 'ball', 'roller'])
 const wordsOf = e => new Set(String(e.n || '').toLowerCase().split(/[^a-z]+/).filter(w => w.length > 2 && !EQ_WORDS.has(w)))
 
@@ -29,15 +29,20 @@ const SOFT = /stretch|warm ?up|mobility|foam roll/
 const baseName = n => String(n || '').toLowerCase().replace(/\s*\([^)]*\)/g, '').trim()
 
 // Same primary target is the signal; shared movement words and secondary muscles rank within
-// it; the same body part breaks the remaining ties. A *different* implement scores a hair
-// higher, because "the bench is busy" is the usual reason to be looking at this list at all.
+// it; the same body part breaks the remaining ties.
+//
+// A *different* implement is worth almost as much as a shared movement word, because the
+// reason you are reading this list is usually that someone is on the machine. Four more
+// variants of the press you cannot get to is not an answer. It is a preference, not a filter —
+// the same machine's incline seat may well be free — so same-equipment options still rank,
+// just below.
 function score(src, srcMuscles, srcWords, e) {
   if (e.tg !== src.tg && e.bp !== src.bp) return 0      // a different lift entirely
   let n = e.tg === src.tg ? 4 : 0
   ;[...wordsOf(e)].forEach(w => { if (srcWords.has(w)) n += 3 })
   ;(e.sm || []).forEach(m => { if (srcMuscles.has(m)) n += 1 })
   if (e.bp === src.bp) n += 1
-  if (e.eq !== src.eq) n += 0.5
+  if (e.eq !== src.eq) n += 2.5
   return n
 }
 
@@ -64,6 +69,8 @@ export function substitutesFor(idOrEx, { exclude = [], limit = 8, pool = EXDB } 
     .map(e => ({ e, s: score(src, srcMuscles, srcWords, e) }))
     .filter(x => x.s > 0)
     .sort((a, b) => b.s - a.s || (a.e.n < b.e.n ? -1 : 1))
-    .slice(0, limit)
     .map(x => x.e)
+    // Some exercises appear twice in the library under different ids; one row each.
+    .filter((e, i, all) => all.findIndex(o => baseName(o.n) === baseName(e.n)) === i)
+    .slice(0, limit)
 }

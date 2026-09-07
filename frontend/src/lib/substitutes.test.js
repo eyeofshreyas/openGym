@@ -26,6 +26,20 @@ describe('substitutesFor', () => {
     expect(substitutesFor(BENCH)[0].eq).not.toBe('barbell')
   })
 
+  it('leads with other equipment when the machine is the thing you cannot get to', () => {
+    // The reason to swap a machine lift is usually that someone is on it, so more variants
+    // of the same machine are no answer. They still appear, below.
+    const machine = EXDB.find(e => e.n === 'lever chest press')
+    const out = substitutesFor(machine.id)
+    expect(out[0].eq).not.toBe(machine.eq)
+    expect(out.filter(e => e.eq !== machine.eq).length).toBeGreaterThanOrEqual(5)
+  })
+
+  it('lists an exercise once even where the library carries it twice', () => {
+    const names = substitutesFor(BENCH, { limit: 40 }).map(e => e.n)
+    expect(new Set(names).size).toBe(names.length)
+  })
+
   it('ranks the same movement above a stretch that shares its muscles', () => {
     // The dataset gives a chest stretch the same tg and sm as a bench press; only the name
     // says one of them is not a working set.
