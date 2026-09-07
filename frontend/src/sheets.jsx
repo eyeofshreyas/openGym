@@ -7,7 +7,7 @@ import { lastEntryFor, bestWeightFor, buildSets, effectiveRoutineId, workoutVolu
 import { beep, vibrate } from './lib/sound.js'
 import { t, instrFor, getLang, INSTR_LANGS } from './lib/i18n.js'
 import { nav } from './lib/nav.js'
-import { starterRoutines } from './lib/starter.js'
+import { PROGRAMS, programBundle, daysOf } from './lib/programs.js'
 import Media, { Thumb } from './components/Media.jsx'
 import Stepper from './components/Stepper.jsx'
 import Icon from './components/Icon.jsx'
@@ -43,16 +43,6 @@ function ConfirmDialog({ title, message, confirmText, cancelText, danger, onConf
 // Themed replacement for window.confirm — callback-based (no blocking).
 export function confirmSheet(opts) {
   ui().openSheet(close => <ConfirmDialog {...opts} close={close} />, { kind: 'center' })
-}
-
-/* ============================ starter plan ============================ */
-export function loadStarterPlan() {
-  const [push, pull, legs] = starterRoutines(S().unit)
-  update(st => {
-    st.routines.push(push, pull, legs)
-    st.week[1] = push.id; st.week[3] = pull.id; st.week[5] = legs.id
-  })
-  toast(t('Starter plan loaded — Mon Push · Wed Pull · Fri Legs'))
 }
 
 /* ============================ weight picker (shared: body weight + goal) ============================ */
@@ -703,10 +693,12 @@ function PlanTools({ close }) {
   </>
 }
 
-export const planImportSheet = bundle => ui().openSheet(close => <PlanImport bundle={bundle} close={close} />)
+export const planImportSheet = (bundle, opts) => ui().openSheet(close => <PlanImport bundle={bundle} {...opts} close={close} />)
 
-function PlanImport({ bundle, close }) {
-  const [schedule, setSchedule] = useState(false)
+// `schedule` is off by default for a friend's plan file — their week shouldn't quietly replace
+// yours — and on for a program from the library, where the week IS the thing being chosen.
+function PlanImport({ bundle, scheduleDefault, close }) {
+  const [schedule, setSchedule] = useState(!!scheduleDefault)
   const apply = () => {
     update(s => mergePlan(s, bundle, { schedule }))
     close()
@@ -735,6 +727,29 @@ function PlanImport({ bundle, close }) {
     <Button variant="primary" onClick={apply}>{t('Add to my plan')}</Button>
     <div style={{ height: 8 }} />
     <Button variant="ghost" className="dim" onClick={close}>{t('Cancel')}</Button>
+  </>
+}
+
+/* ============================ program library ============================ */
+// Every program is turned into the same bundle a shared plan file parses to, so picking one
+// lands in the import sheet above: same preview, same merge, nothing you already have touched.
+export const programsSheet = () => ui().openSheet(close => <Programs close={close} />)
+
+function Programs({ close }) {
+  const st = useStore(s => s.S)
+  return <>
+    <h3>{t('Choose a program')}</h3>
+    <div className="muted small" style={{ marginBottom: 16 }}>
+      {t('A week you can start today — every lift arrives with its sets, reps and a progression rule. Change any of it afterwards.')}
+    </div>
+    <div className="sect-b">
+      {PROGRAMS.map(p => (
+        <Row key={p.key} icon={p.glyph} iconTint="var(--acc)" title={t(p.name)}
+          subtitle={t(p.level) + ' · ' + t(p.blurb)}
+          value={t('{0}×/week', daysOf(p))} accessory="chevron"
+          onClick={() => { close(); planImportSheet(programBundle(p, st.unit), { scheduleDefault: true }) }} />
+      ))}
+    </div>
   </>
 }
 
