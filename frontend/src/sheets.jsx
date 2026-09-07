@@ -22,6 +22,7 @@ import { nextPrescription, applyPrescription, policyFor, defaultIncrement, POLIC
 import { MOBILE, shareExport } from './lib/mobile.js'
 import { candidateExercises, buildPrompt, planFromModel } from './lib/coach.js'
 import { generate, unload } from './lib/gemma.js'
+import { substitutesFor } from './lib/substitutes.js'
 
 const S = () => useStore.getState().S
 const update = (...a) => useStore.getState().update(...a)
@@ -456,6 +457,31 @@ function ExercisePicker({ onPick, close }) {
   </>
 }
 export const exercisePicker = onPick => ui().openSheet(close => <ExercisePicker onPick={onPick} close={close} />)
+
+/* ============================ swap an exercise ============================ */
+// The short list of things that train what this trains. "Browse all" hands straight over to
+// the picker above — this sheet is a shortcut past the search box, not a replacement for it.
+function SwapExercise({ ex, exclude, onPick, close }) {
+  const st = useStore(s => s.S)
+  const opts = substitutesFor(ex, { exclude, pool: allExercises(st) })
+  const pick = e => { close(); onPick(e) }
+  return <>
+    <h3 className="capitalize">{t('Swap “{0}”', ex.n)}</h3>
+    <div className="muted small" style={{ marginBottom: 12 }}>{t('Trains the same muscles — your sets and reps carry over.')}</div>
+    <div className="list">
+      {opts.map(e => <div key={e.id} className="item" onClick={() => pick(e)}>
+        <Thumb ex={e} /><div className="grow"><div className="tt capitalize">{e.n}</div><div className="ss capitalize">{t(e.tg || e.bp)} · {t(e.eq)}</div></div>
+        <Icon name="chevronRight" className="chev" />
+      </div>)}
+      {!opts.length && <div className="empty">{t('Nothing in the library trains quite the same thing — pick one yourself.')}</div>}
+      <div className="item" onClick={() => { close(); exercisePicker(onPick) }}>
+        <div className="thumb thumb-x"><Icon name="magnifier" /></div>
+        <div className="grow"><div className="tt">{t('Browse all exercises')}</div></div><Icon name="chevronRight" className="chev" />
+      </div>
+    </div>
+  </>
+}
+export const swapSheet = (ex, exclude, onPick) => ui().openSheet(close => <SwapExercise ex={ex} exclude={exclude} onPick={onPick} close={close} />)
 
 /* ============================ exercise config ============================ */
 // Progression settings for one exercise (issue #17). Shown inside the config sheet because
