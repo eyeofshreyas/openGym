@@ -47,7 +47,7 @@ export function confirmSheet(opts) {
 
 /* ============================ starter plan ============================ */
 export function loadStarterPlan() {
-  const [push, pull, legs] = starterRoutines()
+  const [push, pull, legs] = starterRoutines(S().unit)
   update(st => {
     st.routines.push(push, pull, legs)
     st.week[1] = push.id; st.week[3] = pull.id; st.week[5] = legs.id
