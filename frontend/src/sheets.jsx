@@ -869,7 +869,9 @@ function WorkoutDetail({ w, close }) {
       return <div key={i} className="row" style={{ marginBottom: 12, alignItems: 'flex-start' }}>
         {ex && <Thumb ex={ex} />}
         <div className="grow"><div className="tt capitalize" style={{ fontWeight: 600 }}>{ex ? ex.n : (e.n || e.id)} {w.prs && w.prs.includes(e.id) && <span className="pr"><Icon name="trophy" />PR</span>}</div>
-          <div className="ss">{e.sets.filter(s => s.done).map(s => setLabel(e.id, s, e.target)).join('  ·  ') || t('no sets')}</div>
+          {/* Warm-ups are shown — they happened — but marked, because none of the numbers
+              above (volume, sets, the PR badge) counted them. */}
+          <div className="ss">{e.sets.filter(s => s.done).map(s => (s.wu ? 'W ' : '') + setLabel(e.id, s, e.target)).join('  ·  ') || t('no sets')}</div>
           {e.target && e.target.note && <div className="ss dim" style={{ whiteSpace: 'pre-wrap' }}>{e.target.note}</div>}</div>
       </div>
     })}

@@ -101,7 +101,10 @@ function deloadTo(cur, step) {
 export function readSession(entry, fallback) {
   const target = (entry && entry.target) || fallback || {}
   const mode = modeOf({ ...target, id: entry && entry.id })
-  const sets = (entry && entry.sets) || []
+  // Warm-ups come out before anything is measured. Left in, they fill the planned set count
+  // so a short session reads as complete, and a clean warm-up in front of a missed working
+  // set makes `every()` pass — the load would go up off the back of the warm-ups.
+  const sets = ((entry && entry.sets) || []).filter(s => !(s && s.wu))
   const planned = target.sets || sets.length
   const enough = sets.length >= planned
 

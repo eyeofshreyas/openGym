@@ -334,7 +334,8 @@ export function parseWorkoutCSV(text, { unit = 'kg' } = {}) {
       ? num(cell(r, 'distanceKm'))
       : toKm(cell(r, 'distance'), cell(r, 'distanceUnit'))
     if (!w && !reps && !mins && !km) { skipped++; continue }
-    if (/warm/i.test(cell(r, 'setType'))) warmups++
+    const warmup = /warm/i.test(cell(r, 'setType'))
+    if (warmup) warmups++
 
     const key = keyOf(name)
     let id = resolved.get(key)
@@ -359,6 +360,10 @@ export function parseWorkoutCSV(text, { unit = 'kg' } = {}) {
     const set = isCardio
       ? { min: mins || 0, speed: mins > 0 ? Math.round(km / (mins / 60) * 10) / 10 : 0, done: true }
       : { w, r: reps || 0, done: true, u: rowUnit }
+    // Strong and Hevy both write a set-type column, and their warm-up rows used to arrive as
+    // working sets — every imported history came in with its volume, set count and muscle map
+    // inflated by them. Marked rather than dropped, so nothing in the file is lost.
+    if (warmup) set.wu = true
     // Effort rides along only where the app can show it again: a weighted rep set. A treadmill
     // row with an RPE would have nowhere to put it. A set is kept on one scale, so a file
     // carrying both columns is read as RIR — the same precedence setLabel reads them back with.

@@ -563,6 +563,12 @@ h4.sec{
   width:24px;height:24px;border-radius:50%;background:var(--surface-2);color:var(--label-2);
   display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:500;flex:none;
   transition:background var(--fast),color var(--fast);
+  border:0;padding:0;font-family:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent;
+}
+/* A warm-up is outlined rather than filled, and never takes the done state's accent — so
+   counting down the column counts only the sets that count. */
+.setrow .n.wu,.setrow.done .n.wu{
+  background:transparent;color:var(--label-3);box-shadow:inset 0 0 0 1px var(--sep);
 }
 .setrow .stp.w{flex:1.4;min-width:0}
 .setrow .stp.r{flex:1;min-width:0}
