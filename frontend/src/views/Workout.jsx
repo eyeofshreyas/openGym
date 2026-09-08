@@ -9,9 +9,10 @@ import { beep, vibrate } from '../lib/sound.js'
 import { t } from '../lib/i18n.js'
 import { api } from '../lib/api.js'
 import Media from '../components/Media.jsx'
-import { startFlow, exercisePicker, exConfigSheet, exerciseDetailSheet, topWeightSheet, finishWorkout, workoutCompleteSheet, confirmSheet, swapSheet } from '../sheets.jsx'
+import { startFlow, exercisePicker, exConfigSheet, exerciseDetailSheet, topWeightSheet, finishWorkout, workoutCompleteSheet, confirmSheet, swapSheet, plateSheet } from '../sheets.jsx'
 import Icon from '../components/Icon.jsx'
 import { Button, Check, NumberField } from '../components/ui.jsx'
+import { barOf, platesOf, platesFor } from '../lib/plates.js'
 import { nextPrescription, applyPrescription } from '../lib/progression.js'
 import { glyphOf } from '../lib/glyphs.js'
 
@@ -76,6 +77,12 @@ function ExerciseBlock({ entryIdx, compact, onToggle, onWarmup, onField, onAddSe
   const bw = !cardio && isBw(cfg)
   const added = bw && entry.sets.some(s => s.w > 0)
   const loadCol = { f: 'w', step: 2.5, dec: true, hd: bw ? t('Added ({0})', S.unit) : t('Weight ({0})', S.unit) }
+  // What to put on the bar for the set you are about to do. Barbell only: an EZ bar is 7-12 kg
+  // depending on the bar and a Smith machine is counterbalanced by an unknown amount, so a
+  // confident number on either would be wrong more often than right.
+  const next = entry.sets.find(s => !s.done) || entry.sets[entry.sets.length - 1]
+  const load = ex.eq === 'barbell' && !bw && mode === 'reps' && next && next.w > 0
+    ? platesFor(next.w, barOf(S), platesOf(S)) : null
   // The reps column is the total in every mode, unilateral included — the stepper walks in
   // twos there so the number you land on is one you can actually split evenly.
   const repCol = { f: 'r', step: repStep(cfg), dec: false, hd: t('Reps') }
@@ -129,6 +136,13 @@ function ExerciseBlock({ entryIdx, compact, onToggle, onWarmup, onField, onAddSe
       {(ex.tg || ex.bp) && <span className="tag">{t(ex.tg || ex.bp)}</span>}
       {ex.eq && <span className="tag">{t(ex.eq)}</span>}
       {best > 0 && <span className="tag nocap">{t('Best:')} {fmtNum(best)} {S.unit}</span>}
+      {/* Per side. Yellow when the plates you own cannot make the number in the row — the
+          one case where reading it off and lifting would log a weight you did not lift. */}
+      {load && <button className="tag nocap" style={load.short > 0 ? { color: 'var(--yellow)' } : undefined}
+        onClick={() => plateSheet(next.w)}>
+        <Icon name="plate" />{load.underBar ? t('under the bar')
+          : load.perSide.length ? load.perSide.map(p => (p.n > 1 ? `${fmtNum(p.w)}×${p.n}` : fmtNum(p.w))).join(' · ')
+            : t('just the bar')}</button>}
     </div>
     {/* The cue you wrote in the routine, in front of you while you do the set — which is the
         only moment it is worth anything. Edited from the same config sheet it was written in. */}

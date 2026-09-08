@@ -20,6 +20,7 @@
 
 import { EXDB, EXIDX } from './exercises.js'
 import { uid } from './format.js'
+import { workoutVolume } from './history.js'
 
 /* ----------------------------------------------------------------- CSV ---- */
 
@@ -93,6 +94,9 @@ function mapHeader(header) {
 /** Name of the app a header looks like — shown back to the user so they can sanity-check. */
 export function detectSource(header) {
   const h = header.map(norm)
+  // Checked before Strong, whose dialect this deliberately borrows: RIR is the giveaway,
+  // since nothing mainstream exports it.
+  if (h.includes('rir') && h.includes('set order')) return 'openGym'
   if (h.includes('exercise title') && h.includes('set index')) return 'Hevy'
   if (h.includes('exercise name') && h.includes('set order')) return 'Strong'
   if (h.includes('exercise') && h.includes('kind')) return 'FitNotes (iOS)'
@@ -354,12 +358,19 @@ export function parseWorkoutCSV(text, { unit = 'kg' } = {}) {
       id = c.id
     }
 
-    const isCardio = (km > 0 || mins > 0) && !reps
+    // Seconds with no reps and no distance, on an exercise the library knows is not cardio,
+    // is a timed hold — a plank, not a run. Without this every hold in an imported file
+    // arrived as a treadmill set at 0 km/h, and the app then offered it a speed column.
+    const lib = id && EXIDX[id]
+    const timedHold = !reps && km <= 0 && secs > 0 && lib && lib.bp !== 'cardio'
+    const isCardio = (km > 0 || mins > 0) && !reps && !timedHold
     // `u` carries the row's own unit into the conversion pass below and is dropped there —
     // it never reaches the stored set.
     const set = isCardio
       ? { min: mins || 0, speed: mins > 0 ? Math.round(km / (mins / 60) * 10) / 10 : 0, done: true }
-      : { w, r: reps || 0, done: true, u: rowUnit }
+      : timedHold
+        ? { sec: Math.round(secs), w, done: true, u: rowUnit }
+        : { w, r: reps || 0, done: true, u: rowUnit }
     // Strong and Hevy both write a set-type column, and their warm-up rows used to arrive as
     // working sets — every imported history came in with its volume, set count and muscle map
     // inflated by them. Marked rather than dropped, so nothing in the file is lost.
@@ -420,7 +431,9 @@ export function parseWorkoutCSV(text, { unit = 'kg' } = {}) {
       id: 'iw' + uid(), d, start, end: end > start ? end : start,
       routineId: null, name: day.name || 'Imported', entries, prs: [],
     }
-    w.vol = entries.reduce((a, e) => a + e.sets.reduce((b, s) => b + (s.w || 0) * (s.r || 0), 0), 0)
+    // Not a hand-rolled sum: warm-up rows are in `entries` and must not count, the same as
+    // everywhere else the app adds volume up.
+    w.vol = workoutVolume(w)
     return w
   })
 

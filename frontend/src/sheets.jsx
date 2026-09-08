@@ -18,6 +18,7 @@ import { loadOfWorkouts } from './lib/muscles.js'
 import { parseImport, mergeImport } from './lib/import-csv.js'
 import { buildPlanBundle, parsePlan, mergePlan, printPlan } from './lib/plan-share.js'
 import { MEASURES, lengthUnit, logMeasures, delMeasure, latestOf } from './lib/measures.js'
+import { BAR, PLATES, barOf, platesOf, platesFor } from './lib/plates.js'
 import { estimate1RM, best1RM, is1RMRecord, REP_CAP } from './lib/onerm.js'
 import { nextPrescription, applyPrescription, policyFor, defaultIncrement, POLICIES_FOR, POLICY_NAME, POLICY_DESC, MAX_BW_SETS } from './lib/progression.js'
 import { MOBILE, shareExport } from './lib/mobile.js'
@@ -123,6 +124,72 @@ export function bwSheet(opts = {}) {
   const h = ui().openSheet(close => <BwSheet {...opts} close={close} />, { locked: !!opts.required })
   return h
 }
+
+/* ============================ bar & plates ============================ */
+// Per side, always: you load both ends, so "25 · 15" means four plates and the number on the
+// bar moves in twice the smallest one you own.
+export const plateLine = (perSide, none) =>
+  perSide.length ? perSide.map(p => (p.n > 1 ? `${fmtNum(p.w)}×${p.n}` : fmtNum(p.w))).join(' · ') : none
+
+function PlateSheet({ weight, close }) {
+  const st = useStore(s => s.S)
+  const bar = barOf(st)
+  const r = platesFor(weight, bar, platesOf(st))
+  return <>
+    <h3>{fmtNum(weight)} {st.unit}</h3>
+    <div className="muted small" style={{ marginBottom: 14 }}>{t('Per side, on a {0} {1} bar', fmtNum(bar), st.unit)}</div>
+    {r.underBar
+      ? <div className="small" style={{ color: 'var(--yellow)', lineHeight: 1.5 }}>
+          {t('That is less than the bar on its own ({0} {1}).', fmtNum(bar), st.unit)}</div>
+      : <>
+        <div style={{ fontSize: 26, fontWeight: 600, letterSpacing: '-.026em' }}>
+          {plateLine(r.perSide, t('just the bar'))}
+        </div>
+        {r.short > 0 && <div className="small" style={{ color: 'var(--yellow)', marginTop: 10, lineHeight: 1.5 }}>
+          {t('Closest you can load is {0} {1} — {2} short. Nothing in your plates makes up the difference.',
+            fmtNum(r.achieved), st.unit, fmtNum(r.short) + ' ' + st.unit)}
+        </div>}
+      </>}
+    <div style={{ height: 16 }} />
+    <Button icon="wrench" onClick={() => { close(); barPlatesSheet() }}>{t('Bar & plates')}</Button>
+  </>
+}
+export const plateSheet = weight => ui().openSheet(close => <PlateSheet weight={weight} close={close} />)
+
+// The setting that makes the hint true in a garage rather than only in a commercial gym.
+function BarPlates({ close }) {
+  const st = useStore(s => s.S)
+  const unit = st.unit
+  const all = PLATES[unit === 'lb' ? 'lb' : 'kg']
+  const own = platesOf(st)
+  const toggle = p => update(s => {
+    const cur = platesOf(s)
+    s.plates = (cur.includes(p) ? cur.filter(x => x !== p) : [...cur, p]).sort((a, b) => b - a)
+  })
+  return <>
+    <h3>{t('Bar & plates')}</h3>
+    <div className="muted small" style={{ marginBottom: 14 }}>
+      {t('Used for the loading hint on barbell work — nothing else reads these.')}
+    </div>
+    <div className="row cfgrow" style={{ marginBottom: 8 }}>
+      <Stepper label={t('Bar weight ({0})', unit)} value={barOf(st)} step={unit === 'lb' ? 5 : 2.5}
+        onChange={v => update(s => { s.bar = v > 0 ? v : null })} />
+    </div>
+    <h4 className="sec">{t('Plates you own')}</h4>
+    <div className="chips">
+      {all.map(p => <button key={p} className={'chip' + (own.includes(p) ? ' on' : '')}
+        onClick={() => toggle(p)}>{fmtNum(p)}</button>)}
+    </div>
+    <div className="dim small" style={{ margin: '10px 2px 0', lineHeight: 1.4 }}>
+      {t('Turn off the ones you don’t have and the hint stops asking for them.')}
+    </div>
+    <div style={{ height: 16 }} />
+    <Button variant="ghost" onClick={() => { update(s => { s.bar = null; s.plates = null }); toast(t('Back to the standard set')) }}>{t('Reset to standard')}</Button>
+    <div style={{ height: 8 }} />
+    <Button variant="primary" onClick={close}>{t('Done')}</Button>
+  </>
+}
+export const barPlatesSheet = () => ui().openSheet(close => <BarPlates close={close} />)
 
 /* ============================ body measurements ============================ */
 // One sheet for all eight, because that is how they are taken: tape measure, one sitting,

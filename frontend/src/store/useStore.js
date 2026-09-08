@@ -12,6 +12,10 @@ export const DEF = {
   theme: 'dark', accent: 'lime', body: 'male', targetW: null,
   bodyweight: [], measures: {}, routines: [], week: {}, dayPlan: {},
   exWeights: {}, workouts: [], active: null, customEx: [], gifSize: 'full',
+  // Bar weight and the plates you own, for the loading hint on barbell work. null, not a
+  // number, so a profile that never said picks up the standard set for its unit — and one
+  // that switches kg/lb keeps following the standard rather than carrying 20 over as 20 lb.
+  bar: null, plates: null,
   // effort: which per-set effort scale is logged — 'none' | 'rir' | 'rpe'. null, not 'none', so
   // that a profile which never chose (loaded state is overlaid on DEF, on every path: local,
   // server pull, backup import) still falls back to the `showRir` boolean this replaced and
