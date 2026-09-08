@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   readSession, sessionsFor, stallCount, nextPrescription, applyPrescription,
-  policyFor, defaultIncrement, POLICIES_FOR, DELOAD_AFTER, MAX_BW_SETS, tmFor
+  policyFor, defaultIncrement, POLICIES_FOR, DELOAD_AFTER, MAX_BW_SETS, tmFor, POLICY_NAME, POLICY_DESC
 } from './progression.js'
 import { EXDB } from './exercises.js'
 
@@ -590,5 +590,61 @@ describe('the training max', () => {
 
   it('never goes below a single step', () => {
     expect(tmFor(S(s('1'), s('2'), s('3', false), s('4')), { ...cfg, tm: 2.5 })).toBe(2.5)
+  })
+})
+
+describe('the cycle policy', () => {
+  const cfg = { id: '0025', sets: 3, reps: 5, weight: 0, prog: 'cycle', cyc: '531', tm: 100, tmStep: 2.5 }
+
+  it('is offered for rep work and nothing else', () => {
+    expect(POLICIES_FOR.reps).toContain('cycle')
+    expect(POLICIES_FOR.time).not.toContain('cycle')
+    expect(POLICIES_FOR.cardio).not.toContain('cycle')
+    expect(POLICY_NAME.cycle).toBeTruthy()
+    expect(POLICY_DESC.cycle).toBeTruthy()
+  })
+
+  it('prescribes week one on the very first session, rather than calling it a baseline', () => {
+    // Every other policy has nothing to say until you have lifted once. A cycle knows exactly
+    // what week one is before you start, and refusing to say so would be the wrong answer.
+    const p = nextPrescription({ unit: 'kg', workouts: [] }, { ...cfg }, null)
+    expect(p.kind).toBe('cycle')
+    expect(p.week).toBe(0)
+    expect(p.cycle).toBe(0)
+    expect(p.tm).toBe(100)
+    expect(p.rows.map(r => [r.w, r.r])).toEqual([[65, 5], [75, 5], [85, 5]])
+    expect(p.rows[2].amrap).toBe(true)
+  })
+
+  it('moves to the next week once a session is logged against it', () => {
+    const S = { unit: 'kg', workouts: [{
+      d: '2026-01-01',
+      entries: [{ id: '0025', target: { id: '0025', cyc: '531', rows: [{ w: 85, r: 5, amrap: true }] },
+        sets: [{ w: 85, r: 6, done: true }] }],
+    }] }
+    const p = nextPrescription(S, { ...cfg }, null)
+    expect(p.week).toBe(1)
+    expect(p.rows.map(r => r.r)).toEqual([3, 3, 3])
+  })
+
+  it('says which cycle and week it is, so the number can be explained', () => {
+    const p = nextPrescription({ unit: 'kg', workouts: [] }, { ...cfg }, null)
+    expect(Array.isArray(p.why)).toBe(true)
+    expect(p.why.join(' ')).toContain('{0}')
+  })
+
+  it('is not offered a policy the mode cannot take', () => {
+    expect(policyFor({ id: '0025', prog: 'cycle', mode: 'time' }, null, 'time')).toBe('off')
+  })
+
+  it('leaves the other policies alone', () => {
+    const S = { unit: 'kg', workouts: [{
+      d: '2026-01-01',
+      entries: [{ id: '0025', target: { id: '0025', sets: 3, reps: 5 },
+        sets: [{ w: 100, r: 5, done: true }, { w: 100, r: 5, done: true }, { w: 100, r: 5, done: true }] }],
+    }] }
+    const p = nextPrescription(S, { id: '0025', sets: 3, reps: 5, weight: 100, prog: 'linear' }, null)
+    expect(p.kind).toBe('up')
+    expect(p.rows).toBeUndefined()
   })
 })

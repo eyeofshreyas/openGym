@@ -18,13 +18,13 @@
 
 import { modeOf, repStep } from './history.js'
 import { EXIDX } from './exercises.js'
-import { cycleSessions, weekCount } from './cycles.js'
+import { cycleSessions, weekCount, cyclePos, rowsFor, CYCLES } from './cycles.js'
 
-export const POLICIES = ['off', 'linear', 'greyskull', 'double', 'time']
+export const POLICIES = ['off', 'linear', 'greyskull', 'double', 'cycle', 'time']
 
 // Which policies can sensibly drive which logging mode.
 export const POLICIES_FOR = {
-  reps: ['off', 'linear', 'greyskull', 'double'],
+  reps: ['off', 'linear', 'greyskull', 'double', 'cycle'],
   time: ['off', 'time'],
   cardio: ['off']
 }
@@ -34,6 +34,7 @@ export const POLICY_NAME = {
   linear: 'Linear progression',
   greyskull: 'Greyskull LP',
   double: 'Double progression',
+  cycle: 'Training-max cycle',
   time: 'Add time'
 }
 export const POLICY_DESC = {
@@ -41,12 +42,13 @@ export const POLICY_DESC = {
   linear: 'Hit every rep in every set and the weight goes up. Repeated misses trigger a deload.',
   greyskull: 'Two straight sets plus a final set taken to failure. Beat the target on that set and the weight goes up — double if you double the reps. One failure resets 10 %.',
   double: 'Work up through a rep range at the same weight. Reach the top of the range in every set and the weight goes up, reps back to the bottom.',
+  cycle: 'Percentages of a training max over a repeating four-week cycle, the last set of each taken as far as it goes. Finish a cycle clean and the training max goes up; fall short and it resets 10 %.',
   time: 'Hold every set for the full duration and the target goes up.'
 }
 
 // Sessions of repeated misses before a deload. Greyskull resets on the first failure by
 // design; the general linear policy gives you two more cracks at it first.
-export const DELOAD_AFTER = { linear: 3, greyskull: 1, double: 3, time: 3 }
+export const DELOAD_AFTER = { linear: 3, greyskull: 1, double: 3, cycle: 1, time: 3 }
 const DELOAD_FACTOR = 0.9
 
 // Body parts where a 5 kg jump is normal rather than brutal.
@@ -80,6 +82,7 @@ function snap(v, step) {
   if (!(step > 0)) return round1(v)
   return round1(Math.round(v / step) * step)
 }
+const fmtTm = v => Math.round(v * 10) / 10
 // Back off by DELOAD_FACTOR, landing on something you can actually load. Rounding to the
 // nearest step keeps the cut close to the intended 10 %, but on small weights the nearest
 // step can be the weight you started from — so a deload that did not actually reduce
@@ -181,6 +184,22 @@ export function nextPrescription(S, cfg, routine) {
   const unit = S.unit || 'kg'
   const inc = cfg.inc > 0 ? cfg.inc : (mode === 'time' ? DEFAULT_SEC_INCREMENT : defaultIncrement(cfg.id, unit))
   if (policy === 'off') return { policy, kind: 'off' }
+
+  // Ahead of the "nothing logged yet" branch on purpose: a cycle knows what week one is
+  // before you have lifted anything, and answering "this session sets the baseline" would be
+  // both unhelpful and untrue.
+  if (policy === 'cycle') {
+    const { cycle, week } = cyclePos(S, cfg.id, cfg.cyc)
+    const tm = tmFor(S, cfg)
+    const rows = rowsFor(cfg.cyc, week, tm, inc)
+    const name = (CYCLES[cfg.cyc] || CYCLES['531']).name
+    return {
+      policy, kind: 'cycle', rows, tm, cycle, week,
+      why: ['{0} · cycle {1}, week {2} — {3} % to {4} % of a {5} {6} training max',
+        name, cycle + 1, week + 1, rows[0].w > 0 ? Math.round(rows[0].w / tm * 100) : 0,
+        Math.round(rows[rows.length - 1].w / tm * 100), fmtTm(tm), unit],
+    }
+  }
 
   const sessions = sessionsFor(S, cfg.id, cfg).filter(s => s.mode === mode)
   const last = sessions[sessions.length - 1]
