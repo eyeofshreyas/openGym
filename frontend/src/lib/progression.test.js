@@ -490,3 +490,58 @@ describe('applyPrescription with per-set rows', () => {
     expect(out).toEqual([{ w: 100, r: 5, done: false }, { w: 100, r: 5, done: false }])
   })
 })
+
+describe('readSession against per-set targets', () => {
+  const target = {
+    id: '0025', cyc: '531',
+    rows: [{ w: 65, r: 5, amrap: false }, { w: 75, r: 5, amrap: false }, { w: 85, r: 5, amrap: true }],
+  }
+  const entry = reps => ({ id: '0025', target, sets: reps.map((r, i) => ({ w: target.rows[i].w, r, done: true })) })
+
+  it('passes when every set met its own target', () => {
+    expect(readSession(entry([5, 5, 5])).ok).toBe(true)
+  })
+
+  it('passes when the last set went past its target, which is the point of it', () => {
+    const r = readSession(entry([5, 5, 9]))
+    expect(r.ok).toBe(true)
+    expect(r.amrap).toBe(9)
+  })
+
+  it('fails when the AMRAP set fell short of its minimum', () => {
+    expect(readSession(entry([5, 5, 3])).ok).toBe(false)
+  })
+
+  it('fails when an ordinary set fell short, however good the last one was', () => {
+    // A missed 75 × 5 is a missed session even if the top set flew — the load was wrong.
+    expect(readSession(entry([5, 3, 9])).ok).toBe(false)
+  })
+
+  it('fails when the session was cut short of the sets it asked for', () => {
+    const e = { id: '0025', target, sets: [{ w: 65, r: 5, done: true }, { w: 75, r: 5, done: true }] }
+    expect(readSession(e).ok).toBe(false)
+  })
+
+  it('reports the heaviest weight and the lowest rep count, as it always did', () => {
+    const r = readSession(entry([5, 4, 6]))
+    expect(r.weight).toBe(85)
+    expect(r.low).toBe(4)
+    expect(r.count).toBe(3)
+  })
+
+  it('still ignores a warm-up', () => {
+    const e = {
+      id: '0025', target,
+      sets: [{ w: 40, r: 5, done: true, wu: true },
+        ...[5, 5, 5].map((r, i) => ({ w: target.rows[i].w, r, done: true }))],
+    }
+    expect(readSession(e).ok).toBe(true)
+  })
+
+  it('leaves a session with no rows judged exactly as before', () => {
+    const e = { id: '0025', target: { id: '0025', sets: 3, reps: 5 }, sets: [
+      { w: 100, r: 5, done: true }, { w: 100, r: 5, done: true }, { w: 100, r: 5, done: true }] }
+    expect(readSession(e).ok).toBe(true)
+    expect(readSession(e).goal).toBe(5)
+  })
+})

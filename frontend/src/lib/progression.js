@@ -105,6 +105,22 @@ export function readSession(entry, fallback) {
   // so a short session reads as complete, and a clean warm-up in front of a missed working
   // set makes `every()` pass — the load would go up off the back of the warm-ups.
   const sets = ((entry && entry.sets) || []).filter(s => !(s && s.wu))
+  // A cycle prescribes each set separately, so the session is judged set by set: every
+  // ordinary set has to meet its own target, and the last one only has to reach its minimum
+  // — going past it is what that set is for.
+  if (target.rows) {
+    const rows = target.rows
+    const reps = sets.map(s => (s.done ? (s.r || 0) : 0))
+    const met = rows.every((row, i) => reps[i] >= row.r)
+    return {
+      mode, goal: rows[rows.length - 1].r, reps,
+      weight: Math.max(0, ...sets.filter(s => s.done).map(s => s.w || 0)),
+      count: reps.length,
+      low: reps.length ? Math.min(...reps) : 0,
+      amrap: reps.length ? reps[reps.length - 1] : 0,
+      ok: reps.length >= rows.length && met,
+    }
+  }
   const planned = target.sets || sets.length
   const enough = sets.length >= planned
 
