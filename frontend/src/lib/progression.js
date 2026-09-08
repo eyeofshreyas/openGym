@@ -252,6 +252,21 @@ export function nextPrescription(S, cfg, routine) {
  */
 export function applyPrescription(sets, p) {
   if (!p || p.kind === 'off' || p.kind === 'first') return sets
+  // A cycle prescribes a different weight and rep target for each set — 65 × 5, 75 × 5,
+  // 85 × 5+ — so it arrives as rows rather than as the one weight every other policy decides.
+  if (p.rows) {
+    const out = sets.map((s, i) => {
+      const row = p.rows[i]
+      if (s.done || !row) return s
+      return { ...s, w: row.w, r: row.r }
+    })
+    // Only ever grows. A week shorter than what is already logged must not take away work
+    // that was done, which is the same rule the set-count branch below follows.
+    for (let i = out.length; i < p.rows.length; i++) {
+      out.push({ w: p.rows[i].w, r: p.rows[i].r, done: false })
+    }
+    return out
+  }
   const out = sets.map(s => {
     if (s.done) return s
     const o = { ...s }

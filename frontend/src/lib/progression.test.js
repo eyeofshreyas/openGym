@@ -450,3 +450,43 @@ describe('applyPrescription', () => {
     expect(applyPrescription(sets, { kind: 'up', weight: 60, sets: 1 })).toHaveLength(sets.length)
   })
 })
+
+describe('applyPrescription with per-set rows', () => {
+  const rows = [{ w: 65, r: 5, amrap: false }, { w: 75, r: 5, amrap: false }, { w: 85, r: 5, amrap: true }]
+
+  it('gives each set its own weight instead of broadcasting one', () => {
+    const sets = [{ w: 0, r: 10, done: false }, { w: 0, r: 10, done: false }, { w: 0, r: 10, done: false }]
+    const out = applyPrescription(sets, { kind: 'cycle', rows })
+    expect(out.map(s => [s.w, s.r])).toEqual([[65, 5], [75, 5], [85, 5]])
+  })
+
+  it('grows the list to fit the week', () => {
+    const out = applyPrescription([{ w: 0, r: 10, done: false }], { kind: 'cycle', rows })
+    expect(out).toHaveLength(3)
+    expect(out[2].w).toBe(85)
+  })
+
+  it('never touches a set already logged', () => {
+    const sets = [{ w: 60, r: 6, done: true }, { w: 0, r: 10, done: false }, { w: 0, r: 10, done: false }]
+    const out = applyPrescription(sets, { kind: 'cycle', rows })
+    expect(out[0]).toEqual({ w: 60, r: 6, done: true })
+    expect(out[1].w).toBe(75)
+  })
+
+  it('never drops a set that has been logged, even past the end of the week', () => {
+    // A shorter week must not take away work you already did.
+    const sets = [
+      { w: 65, r: 5, done: true }, { w: 75, r: 5, done: true },
+      { w: 85, r: 8, done: true }, { w: 85, r: 6, done: true },
+    ]
+    const out = applyPrescription(sets, { kind: 'cycle', rows })
+    expect(out).toHaveLength(4)
+    expect(out[3]).toEqual({ w: 85, r: 6, done: true })
+  })
+
+  it('leaves the scalar policies exactly as they were', () => {
+    const sets = [{ w: 0, r: 0, done: false }, { w: 0, r: 0, done: false }]
+    const out = applyPrescription(sets, { kind: 'up', weight: 100, reps: 5 })
+    expect(out).toEqual([{ w: 100, r: 5, done: false }, { w: 100, r: 5, done: false }])
+  })
+})
