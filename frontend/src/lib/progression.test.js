@@ -491,6 +491,29 @@ describe('applyPrescription with per-set rows', () => {
     const out = applyPrescription(sets, { kind: 'up', weight: 100, reps: 5 })
     expect(out).toEqual([{ w: 100, r: 5, done: false }, { w: 100, r: 5, done: false }])
   })
+
+  // Fix round 2: the routine's own set count can be wider than the cycle's week (e.g. a 4-set
+  // bench config against a 3-row 5/3/1 week). buildSets fills that 4th slot from last
+  // session's numbers, and the old rows branch left it untouched rather than dropping it — a
+  // phantom set surviving after the AMRAP top set that the cycle never prescribed.
+  it('drops an unlogged set past the end of the week', () => {
+    const sets = [
+      { w: 60, r: 7, done: false }, { w: 70, r: 7, done: false },
+      { w: 75, r: 7, done: false }, { w: 75, r: 7, done: false },
+    ]
+    const out = applyPrescription(sets, { kind: 'cycle', rows })
+    expect(out).toHaveLength(3)
+  })
+
+  it('keeps a logged set past the end of the week, unlogged sets ahead of it', () => {
+    const sets = [
+      { w: 60, r: 7, done: false }, { w: 70, r: 7, done: false },
+      { w: 75, r: 7, done: false }, { w: 75, r: 7, done: true },
+    ]
+    const out = applyPrescription(sets, { kind: 'cycle', rows })
+    expect(out).toHaveLength(4)
+    expect(out[3]).toEqual({ w: 75, r: 7, done: true })
+  })
 })
 
 describe('readSession against per-set targets', () => {

@@ -322,13 +322,21 @@ export function applyPrescription(sets, p) {
   // A cycle prescribes a different weight and rep target for each set — 65 × 5, 75 × 5,
   // 85 × 5+ — so it arrives as rows rather than as the one weight every other policy decides.
   if (p.rows) {
-    const out = sets.map((s, i) => {
-      const row = p.rows[i]
-      if (s.done || !row) return s
-      return { ...s, w: row.w, r: row.r }
-    })
-    // Only ever grows. A week shorter than what is already logged must not take away work
-    // that was done, which is the same rule the set-count branch below follows.
+    // A set past the end of this week's rows is dropped — unless it was already logged, in
+    // which case it stays: the routine's set count can be wider than the cycle's, and an
+    // unlogged surplus set (buildSets over-provisioning against a shorter week) must not sit
+    // there prescribing nothing, while logged work is never taken away.
+    const out = sets
+      .map((s, i) => {
+        const row = p.rows[i]
+        if (s.done) return s
+        if (!row) return null
+        return { ...s, w: row.w, r: row.r }
+      })
+      .filter(s => s !== null)
+    // Only ever grows past what is already logged. A week longer than what buildSets
+    // produced must not leave the extra top sets missing, which is the same rule the
+    // set-count branch below follows.
     for (let i = out.length; i < p.rows.length; i++) {
       out.push({ w: p.rows[i].w, r: p.rows[i].r, done: false })
     }
