@@ -115,9 +115,15 @@ function ExerciseBlock({ entryIdx, compact, onToggle, onWarmup, onField, onAddSe
       <button aria-label="Increase" onClick={() => bump(s, i, col, 1)}><Icon name="plus" /></button>
     </div>
   )
-  // Warm-ups are lettered, working sets numbered from one.
+  // Warm-ups are lettered, working sets numbered from one. A cycle's last set is taken as far
+  // as it goes, and the plus is the whole instruction — without it the row reads as a cap.
+  const rows = (entry.target && entry.target.rows) || null
   let n = 0
-  const setNums = entry.sets.map(s => (s.wu ? 'W' : String(++n)))
+  const setNums = entry.sets.map((s, i) => {
+    if (s.wu) return 'W'
+    const num = String(++n)
+    return rows && rows[i] && rows[i].amrap ? num + '+' : num
+  })
 
   return <>
     <Media ex={ex} key={entry.id} compact={compact} minimizable />

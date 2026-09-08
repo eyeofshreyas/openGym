@@ -21,6 +21,7 @@ import { MEASURES, lengthUnit, logMeasures, delMeasure, latestOf } from './lib/m
 import { BAR, PLATES, barOf, platesOf, platesFor } from './lib/plates.js'
 import { estimate1RM, best1RM, is1RMRecord, REP_CAP } from './lib/onerm.js'
 import { nextPrescription, applyPrescription, policyFor, defaultIncrement, POLICIES_FOR, POLICY_NAME, POLICY_DESC, MAX_BW_SETS } from './lib/progression.js'
+import { CYCLES, CYCLE_KEYS } from './lib/cycles.js'
 import { MOBILE, shareExport } from './lib/mobile.js'
 import { candidateExercises, buildPrompt, planFromModel } from './lib/coach.js'
 import { generate, unload } from './lib/gemma.js'
@@ -615,6 +616,12 @@ function ProgressionFields({ ex, mode, c, setC, routine, unit }) {
   const inherited = policyFor({ id: ex.id }, routine, mode)
   const active = policyFor({ ...c, id: ex.id }, routine, mode)
   const inc = c.inc > 0 ? c.inc : (mode === 'time' ? 5 : defaultIncrement(ex.id, unit))
+  // 90 % of the best estimate the history holds — 5/3/1's own starting point. Snapped to the
+  // step so the first suggestion is already a loadable number.
+  const best = best1RM(S(), ex.id)
+  const tmSuggestion = best && best.est > 0
+    ? Math.max(inc, Math.round(best.est * 0.9 / inc) * inc)
+    : Math.max(inc, (c.weight || 0))
   return <>
     <h4 className="sec">{t('Progression')}</h4>
     <div className="sect-b" style={{ marginBottom: 8 }}>
@@ -623,12 +630,32 @@ function ProgressionFields({ ex, mode, c, setC, routine, unit }) {
           ...options.map(p => ({ value: p, label: t(POLICY_NAME[p]) }))]} />
     </div>
     <div className="small dim" style={{ marginBottom: active === 'off' ? 18 : 10 }}>{t(POLICY_DESC[active])}</div>
-    {active !== 'off' && <div className="row cfgrow" style={{ marginBottom: 18 }}>
+    {active !== 'off' && <div className="row cfgrow" style={{ marginBottom: active === 'cycle' ? 8 : 18 }}>
       <Stepper label={mode === 'time' ? t('Step (seconds)') : t('Step ({0})', unit)} value={inc}
         step={mode === 'time' ? 5 : 1.25} decimal={mode !== 'time'} onChange={v => setC(x => ({ ...x, inc: v }))} />
       {active === 'double' && <Stepper label={t('Reps from')} value={c.repsMin || Math.max(1, (c.reps || 10) - 2)}
         step={1} decimal={false} onChange={v => setC(x => ({ ...x, repsMin: v }))} />}
     </div>}
+    {active === 'cycle' && <>
+      <div className="sect-b" style={{ marginBottom: 8 }}>
+        <SelectRow title={t('Cycle')} sheetTitle={t('Cycle')} value={c.cyc || '531'}
+          onChange={v => setC(x => ({ ...x, cyc: v }))}
+          options={CYCLE_KEYS.map(k => ({ value: k, label: CYCLES[k].name }))} />
+      </div>
+      <div className="small dim" style={{ marginBottom: 10 }}>{t(CYCLES[c.cyc || '531'].desc)}</div>
+      <div className="row cfgrow" style={{ marginBottom: 8 }}>
+        {/* Prefilled at 90 % of the best estimate the history holds, because that is where
+            5/3/1 says to start — and left editable, because the number people actually run
+            it on is a judgement rather than a measurement. */}
+        <Stepper label={t('Training max ({0})', unit)} value={c.tm || tmSuggestion}
+          step={2.5} onChange={v => setC(x => ({ ...x, tm: v }))} />
+        <Stepper label={t('Cycle step ({0})', unit)} value={c.tmStep || defaultIncrement(ex.id, unit)}
+          step={1.25} onChange={v => setC(x => ({ ...x, tmStep: v }))} />
+      </div>
+      <div className="small dim" style={{ marginBottom: 18 }}>
+        {t('The training max goes up by the cycle step each time you finish a cycle clean.')}
+      </div>
+    </>}
   </>
 }
 
