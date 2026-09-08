@@ -97,7 +97,10 @@ describe('turning a week into sets', () => {
   it('snaps to something you can actually load', () => {
     // 65 % of 142.5 is 92.625, which is not a weight. The step is what the bar moves in.
     const rows = rowsFor('531', 0, 142.5, 2.5)
-    expect(rows.map(r => r.w)).toEqual([92.5, 107.5, 122.5])
+    // 92.625 / 106.875 / 121.125 to the nearest 2.5. The last one rounds DOWN — 121.125 is
+    // nearer 120 than 122.5, and a calculator that rounded it up would put 0.9 kg on the bar
+    // that the percentage never asked for.
+    expect(rows.map(r => r.w)).toEqual([92.5, 107.5, 120])
   })
 
   it('never returns a weight with more precision than the app stores', () => {
@@ -637,8 +640,11 @@ Expected: FAIL — `tmFor is not defined`. Add `tmFor` to the existing import fr
 At the top of `frontend/src/lib/progression.js`, extend the imports:
 
 ```js
-import { cycleSessions, weekCount, rowsFor, CYCLES } from './cycles.js'
+import { cycleSessions, weekCount } from './cycles.js'
 ```
+
+Task 6 extends this import with `cyclePos`, `rowsFor` and `CYCLES`. Do not add them here —
+an import this task does not use is a defect a reviewer will rightly flag.
 
 Append to `frontend/src/lib/progression.js`:
 
@@ -760,9 +766,13 @@ Expected: FAIL — `POLICIES_FOR.reps` does not contain `cycle`. Add `POLICIES_F
 
 - [ ] **Step 3: Write minimal implementation**
 
-In `frontend/src/lib/progression.js`:
+In `frontend/src/lib/progression.js`, first extend the cycles import Task 5 added:
 
-Add `'cycle'` to the reps list and to `POLICIES`:
+```js
+import { cycleSessions, weekCount, cyclePos, rowsFor, CYCLES } from './cycles.js'
+```
+
+Then add `'cycle'` to the reps list and to `POLICIES`:
 
 ```js
 export const POLICIES = ['off', 'linear', 'greyskull', 'double', 'cycle', 'time']
