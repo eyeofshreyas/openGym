@@ -4,6 +4,7 @@ import {
   policyFor, defaultIncrement, POLICIES_FOR, DELOAD_AFTER, MAX_BW_SETS, tmFor, POLICY_NAME, POLICY_DESC
 } from './progression.js'
 import { EXDB } from './exercises.js'
+import { cyclePos } from './cycles.js'
 
 const LIFT = EXDB.find(e => e.bp !== 'cardio' && !['upper legs', 'lower legs', 'back', 'hips', 'glutes'].includes(e.bp)).id
 const HEAVY = EXDB.find(e => e.bp === 'upper legs').id
@@ -646,5 +647,49 @@ describe('the cycle policy', () => {
     const p = nextPrescription(S, { id: '0025', sets: 3, reps: 5, weight: 100, prog: 'linear' }, null)
     expect(p.kind).toBe('up')
     expect(p.rows).toBeUndefined()
+  })
+})
+
+describe('a prescribed cycle session, recorded and read back', () => {
+  const cfg = { id: '0025', sets: 3, reps: 5, weight: 0, prog: 'cycle', cyc: '531', tm: 100, tmStep: 2.5 }
+
+  // What the entry builders in sheets.jsx and Workout.jsx must produce. Kept here as a test
+  // so the shape is pinned by something that runs, not only by the two call sites.
+  const buildEntry = (S, c) => {
+    const plan = nextPrescription(S, c, null)
+    return {
+      id: c.id,
+      target: { ...c, ...(plan.rows ? { rows: plan.rows } : {}) },
+      plan,
+      sets: applyPrescription([{ w: 0, r: 0, done: false }], plan),
+    }
+  }
+
+  it('records the rows it was given, so the session can be judged against them', () => {
+    const e = buildEntry({ unit: 'kg', workouts: [] }, cfg)
+    expect(e.target.cyc).toBe('531')
+    expect(e.target.rows).toHaveLength(3)
+    expect(e.sets.map(s => s.w)).toEqual([65, 75, 85])
+  })
+
+  it('counts toward the position once it is logged, and only then', () => {
+    const S = { unit: 'kg', workouts: [] }
+    const e = buildEntry(S, cfg)
+    expect(cyclePos(S, '0025', '531').week).toBe(0)
+    e.sets = e.sets.map((s, i) => ({ ...s, r: e.target.rows[i].r, done: true }))
+    S.workouts.push({ d: '2026-01-01', entries: [e] })
+    expect(cyclePos(S, '0025', '531').week).toBe(1)
+  })
+
+  it('reads back as the session it actually was', () => {
+    const S = { unit: 'kg', workouts: [] }
+    const e = buildEntry(S, cfg)
+    e.sets = e.sets.map((s, i) => ({ ...s, r: e.target.rows[i].r, done: true }))
+    expect(readSession(e, cfg).ok).toBe(true)
+  })
+
+  it('adds nothing to the target for a policy that has no rows', () => {
+    const e = buildEntry({ unit: 'kg', workouts: [] }, { id: '0025', sets: 3, reps: 5, weight: 60, prog: 'linear' })
+    expect(e.target.rows).toBeUndefined()
   })
 })

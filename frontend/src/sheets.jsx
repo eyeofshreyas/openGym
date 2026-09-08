@@ -1079,7 +1079,14 @@ export function beginWorkout(routineId, bw) {
   // kept on the entry purely so the workout can explain the number it chose.
   const entries = (r ? r.ex : []).map(cfg => {
     const plan = nextPrescription(st, cfg, r)
-    return { id: cfg.id, sg: cfg.sg, target: { ...cfg }, plan, sets: applyPrescription(buildSets(st, cfg), plan) }
+    // The rows travel into the target because they are what the session was asked to do:
+    // cycle position counts targets carrying `cyc`, and readSession judges each set against
+    // its own row. Prescribed but not recorded would mean every session read as week one.
+    return {
+      id: cfg.id, sg: cfg.sg,
+      target: { ...cfg, ...(plan.rows ? { rows: plan.rows } : {}) },
+      plan, sets: applyPrescription(buildSets(st, cfg), plan),
+    }
   })
   update(s => {
     s.active = { id: uid(), d: todayISO(), start: Date.now(), routineId, name: r ? r.name : t('Freestyle'), bw: bw || null, cur: 0, entries }
