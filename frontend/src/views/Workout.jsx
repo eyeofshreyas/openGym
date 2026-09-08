@@ -122,7 +122,9 @@ function ExerciseBlock({ entryIdx, compact, onToggle, onWarmup, onField, onAddSe
   const setNums = entry.sets.map((s, i) => {
     if (s.wu) return 'W'
     const num = String(++n)
-    return rows && rows[i] && rows[i].amrap ? num + '+' : num
+    // rows are indexed by working-set position, same as readSession — a warm-up must not
+    // shift which row's amrap flag lands on which set.
+    return rows && rows[n - 1] && rows[n - 1].amrap ? num + '+' : num
   })
 
   return <>

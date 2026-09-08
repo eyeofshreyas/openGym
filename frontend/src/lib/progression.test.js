@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   readSession, sessionsFor, stallCount, nextPrescription, applyPrescription,
-  policyFor, defaultIncrement, POLICIES_FOR, DELOAD_AFTER, MAX_BW_SETS, tmFor, POLICY_NAME, POLICY_DESC,
+  policyFor, defaultIncrement, POLICIES_FOR, ROUTINE_POLICIES, DELOAD_AFTER, MAX_BW_SETS, tmFor, POLICY_NAME, POLICY_DESC,
   progFieldsFor
 } from './progression.js'
 import { EXDB } from './exercises.js'
@@ -88,6 +88,17 @@ describe('policyFor', () => {
     expect(policyFor({ id: LIFT, mode: 'time', prog: 'greyskull' }, null, 'time')).toBe('off')
     expect(policyFor({ id: CARDIO, prog: 'linear' }, null, 'cardio')).toBe('off')
     expect(POLICIES_FOR.cardio).toEqual(['off'])
+  })
+})
+
+describe('ROUTINE_POLICIES', () => {
+  it('excludes cycle — a training max is per lift, never a routine default', () => {
+    expect(ROUTINE_POLICIES).not.toContain('cycle')
+    // policyFor and the per-exercise sheet still need it in the full list.
+    expect(POLICIES_FOR.reps).toContain('cycle')
+  })
+  it('otherwise offers exactly what the per-exercise sheet offers', () => {
+    expect(ROUTINE_POLICIES).toEqual(POLICIES_FOR.reps.filter(p => p !== 'cycle'))
   })
 })
 
@@ -563,6 +574,35 @@ describe('readSession against per-set targets', () => {
     expect(readSession(e).ok).toBe(true)
   })
 
+  it('indexes rows by working-set position, agreeing with the "+" marker Workout.jsx computes', () => {
+    // A warm-up in front must not shift which row judges which set: readSession already
+    // filters warm-ups before indexing `rows`, so the AMRAP row (index 2) has to line up
+    // with the third WORKING set, not the raw fourth array slot.
+    const e = {
+      id: '0025', target,
+      sets: [
+        { w: 40, r: 5, done: true, wu: true },
+        { w: 65, r: 5, done: true },
+        { w: 75, r: 5, done: true },
+        { w: 85, r: 6, done: true },
+      ],
+    }
+    const r = readSession(e)
+    expect(r.reps).toEqual([5, 5, 6])
+    expect(r.amrap).toBe(6)
+    expect(r.ok).toBe(true)
+
+    // The working-set counter Workout.jsx builds for the "+" marker: warm-ups labelled 'W',
+    // working sets numbered 1..n, and the row looked up at that same working-set position.
+    let n = 0
+    const marks = e.sets.map(s => {
+      if (s.wu) return 'W'
+      n++
+      return target.rows[n - 1] && target.rows[n - 1].amrap ? String(n) + '+' : String(n)
+    })
+    expect(marks).toEqual(['W', '1', '2', '3+'])
+  })
+
   it('leaves a session with no rows judged exactly as before', () => {
     const e = { id: '0025', target: { id: '0025', sets: 3, reps: 5 }, sets: [
       { w: 100, r: 5, done: true }, { w: 100, r: 5, done: true }, { w: 100, r: 5, done: true }] }
@@ -602,6 +642,37 @@ describe('the training max', () => {
   it('drops to 90 % after a cycle whose top set fell short', () => {
     // What 5/3/1 says to do, and it is what the engine already does on a stall elsewhere.
     expect(tmFor(S(s('1'), s('2'), s('3', false), s('4')), cfg)).toBe(90)
+  })
+
+  it('still advances when a non-AMRAP set was missed, as long as the top set was clean', () => {
+    // The spec says the top set decides — a missed 65 % opener must not cost 10 % of the
+    // training max the way the old "every set of every week" rule did.
+    const missedOpener = d => ({
+      d,
+      entries: [{ id: '0025', target: { id: '0025', cyc: '531', rows },
+        sets: [{ w: 65, r: 2, done: true }, { w: 75, r: 5, done: true }, { w: 85, r: 5, done: true }] }],
+    })
+    expect(tmFor(S(missedOpener('1'), s('2'), s('3'), s('4')), cfg)).toBe(102.5)
+  })
+
+  it('does not advance when the AMRAP set missed, even with every other set clean', () => {
+    expect(tmFor(S(s('1'), s('2'), s('3', false), s('4')), cfg)).toBe(90)
+  })
+
+  it('falls back to "every set of every week" for a table with no AMRAP row at all', () => {
+    // bbb declares no AMRAP anywhere — without the fallback, amrapMet would trivially pass
+    // every session and the training max would climb forever regardless of what was logged.
+    const bbbRows = [{ w: 50, r: 10, amrap: false }, { w: 50, r: 10, amrap: false }]
+    const bbbCfg = { id: '0025', prog: 'cycle', cyc: 'bbb', tm: 100, tmStep: 2.5 }
+    const bbbSess = (d, hit = true) => ({
+      d,
+      entries: [{ id: '0025', target: { id: '0025', cyc: 'bbb', rows: bbbRows },
+        sets: [{ w: 50, r: 10, done: true }, { w: 50, r: hit ? 10 : 3, done: true }] }],
+    })
+    // One missed ordinary set anywhere in the cycle still resets it, because bbb has no top
+    // set to fall back on.
+    expect(tmFor(S(bbbSess('1', false), bbbSess('2'), bbbSess('3'), bbbSess('4')), bbbCfg)).toBe(90)
+    expect(tmFor(S(bbbSess('1'), bbbSess('2'), bbbSess('3'), bbbSess('4')), bbbCfg)).toBe(102.5)
   })
 
   it('snaps the reset to something loadable rather than to a fraction', () => {

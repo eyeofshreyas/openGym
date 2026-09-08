@@ -18,7 +18,7 @@
 
 import { modeOf, repStep } from './history.js'
 import { EXIDX } from './exercises.js'
-import { cycleSessions, weekCount, cyclePos, rowsFor, CYCLES } from './cycles.js'
+import { cycleSessions, weekCount, cyclePos, rowsFor, weeksOf, CYCLES } from './cycles.js'
 import { best1RM } from './onerm.js'
 
 export const POLICIES = ['off', 'linear', 'greyskull', 'double', 'cycle', 'time']
@@ -29,6 +29,13 @@ export const POLICIES_FOR = {
   time: ['off', 'time'],
   cardio: ['off']
 }
+
+// A routine's default progression can't be `cycle` — a training max is per lift, not per
+// routine (a 5/3/1 day is one main lift on a cycle plus accessories on double progression),
+// and a routine default with no per-exercise `cyc`/`tm` would put every exercise on a
+// training max of 0. `policyFor` and the per-exercise sheet still offer `cycle` via
+// POLICIES_FOR.reps directly.
+export const ROUTINE_POLICIES = POLICIES_FOR.reps.filter(p => p !== 'cycle')
 
 export const POLICY_NAME = {
   off: 'No automatic progression',
@@ -111,7 +118,6 @@ function snap(v, step) {
   if (!(step > 0)) return round1(v)
   return round1(Math.round(v / step) * step)
 }
-const fmtTm = v => Math.round(v * 10) / 10
 // Back off by DELOAD_FACTOR, landing on something you can actually load. Rounding to the
 // nearest step keeps the cut close to the intended 10 %, but on small weights the nearest
 // step can be the weight you started from — so a deload that did not actually reduce
@@ -228,7 +234,7 @@ export function nextPrescription(S, cfg, routine) {
     return {
       policy, kind: 'cycle', rows, tm, cycle, week,
       why: ['{0} · cycle {1}, week {2} — {3} % to {4} % of a {5} {6} training max',
-        name, cycle + 1, week + 1, pct(rows[0].w), pct(rows[rows.length - 1].w), fmtTm(tm), unit],
+        name, cycle + 1, week + 1, pct(rows[0].w), pct(rows[rows.length - 1].w), round1(tm), unit],
     }
   }
 
@@ -370,13 +376,30 @@ export function applyPrescription(sets, p) {
  * Only whole cycles count. Part way through, the training max is whatever it was when the
  * cycle started, so the percentages you are working to do not move under you mid-cycle.
  */
+// Whether one recorded session's AMRAP set (if its week prescribed one) met its target. A
+// week with no AMRAP row has nothing to judge here and does not block the cycle — this is
+// what makes a deload week's lighter numbers irrelevant to whether the cycle was clean.
+function amrapMet(entry, fallback) {
+  const rows = ((entry && entry.target) || fallback || {}).rows
+  if (!rows) return readSession(entry, fallback).ok
+  const idx = rows.findIndex(r => r.amrap)
+  if (idx < 0) return true
+  const reps = readSession(entry, fallback).reps || []
+  return reps[idx] >= rows[idx].r
+}
+
 export function tmFor(S, cfg) {
   const step = cfg.tmStep > 0 ? cfg.tmStep : defaultIncrement(cfg.id, (S && S.unit) || 'kg')
   const len = weekCount(cfg.cyc)
   const sessions = cycleSessions(S, cfg.id)
+  // A table with no AMRAP row anywhere (bbb) has nothing for amrapMet to judge, so every
+  // session would trivially "meet" its target and the training max would climb forever —
+  // fall back to the old whole-cycle rule for those tables.
+  const hasAmrap = weeksOf(cfg.cyc).some(wk => wk.some(row => row[2]))
   let tm = cfg.tm > 0 ? cfg.tm : 0
   for (let i = 0; i + len <= sessions.length; i += len) {
-    const clean = sessions.slice(i, i + len).every(x => readSession(x.entry, cfg).ok)
+    const chunk = sessions.slice(i, i + len)
+    const clean = hasAmrap ? chunk.every(x => amrapMet(x.entry, cfg)) : chunk.every(x => readSession(x.entry, cfg).ok)
     tm = clean ? snap(tm + step, step) : Math.max(step, snap(tm * DELOAD_FACTOR, step))
   }
   return tm

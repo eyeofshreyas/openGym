@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { CYCLES, CYCLE_KEYS, weeksOf, weekCount, rowsFor } from './cycles.js'
+import { CYCLES, CYCLE_KEYS, weeksOf, weekCount, rowsFor, cycleSessions, cyclePos } from './cycles.js'
 
 describe('the percentage tables', () => {
   it('ships the two the app offers', () => {
@@ -42,6 +42,14 @@ describe('the percentage tables', () => {
     expect(weeksOf('nonsense')).toEqual(weeksOf('531'))
     expect(weekCount('nonsense')).toBe(4)
   })
+
+  // cyclePos divides a combined session count by the CURRENT table's weekCount. Both shipped
+  // tables happen to be four weeks long, which hides a mismatch — this fails loudly the day a
+  // table with a different length ships, rather than silently mis-positioning someone's cycle.
+  it('keeps every table the same length as every other, so position math is not table-specific', () => {
+    const counts = CYCLE_KEYS.map(weekCount)
+    expect(new Set(counts).size).toBe(1)
+  })
 })
 
 describe('turning a week into sets', () => {
@@ -77,8 +85,6 @@ describe('turning a week into sets', () => {
     expect(rowsFor('531', 4, 100, 2.5)).toEqual(rowsFor('531', 0, 100, 2.5))
   })
 })
-
-import { cycleSessions, cyclePos } from './cycles.js'
 
 // A finished session. `cyc` on the target is the marker that says "this was a cycle session";
 // history from before you switched to 5/3/1 has none and must not count.

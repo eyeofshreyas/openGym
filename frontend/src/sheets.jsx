@@ -20,7 +20,7 @@ import { buildPlanBundle, parsePlan, mergePlan, printPlan } from './lib/plan-sha
 import { MEASURES, lengthUnit, logMeasures, delMeasure, latestOf } from './lib/measures.js'
 import { BAR, PLATES, barOf, platesOf, platesFor } from './lib/plates.js'
 import { estimate1RM, best1RM, is1RMRecord, REP_CAP } from './lib/onerm.js'
-import { nextPrescription, applyPrescription, policyFor, defaultIncrement, POLICIES_FOR, POLICY_NAME, POLICY_DESC, MAX_BW_SETS, tmSuggestionFor, progFieldsFor } from './lib/progression.js'
+import { nextPrescription, applyPrescription, policyFor, defaultIncrement, POLICIES_FOR, POLICY_NAME, POLICY_DESC, MAX_BW_SETS, tmSuggestionFor, progFieldsFor, tmFor } from './lib/progression.js'
 import { CYCLES, CYCLE_KEYS } from './lib/cycles.js'
 import { MOBILE, shareExport } from './lib/mobile.js'
 import { candidateExercises, buildPrompt, planFromModel } from './lib/coach.js'
@@ -617,6 +617,8 @@ function ProgressionFields({ ex, mode, c, setC, routine, unit }) {
   const active = policyFor({ ...c, id: ex.id }, routine, mode)
   const inc = c.inc > 0 ? c.inc : (mode === 'time' ? 5 : defaultIncrement(ex.id, unit))
   const tmSuggestion = tmSuggestionFor(S(), ex.id, inc, c.weight)
+  const base = c.tm || tmSuggestion
+  const derivedTm = active === 'cycle' ? tmFor(S(), { ...c, id: ex.id, tm: base }) : base
   return <>
     <h4 className="sec">{t('Progression')}</h4>
     <div className="sect-b" style={{ marginBottom: 8 }}>
@@ -641,12 +643,17 @@ function ProgressionFields({ ex, mode, c, setC, routine, unit }) {
       <div className="row cfgrow" style={{ marginBottom: 8 }}>
         {/* Prefilled at 90 % of the best estimate the history holds, because that is where
             5/3/1 says to start — and left editable, because the number people actually run
-            it on is a judgement rather than a measurement. */}
-        <Stepper label={t('Training max ({0})', unit)} value={c.tm || tmSuggestion}
+            it on is a judgement rather than a measurement. This is the BASE the cycle starts
+            from, not what you are currently lifting off — tmFor replays every completed
+            cycle on top of it, so the two drift apart once a cycle or two has gone by. */}
+        <Stepper label={t('Starting training max ({0})', unit)} value={c.tm || tmSuggestion}
           step={2.5} onChange={v => setC(x => ({ ...x, tm: v }))} />
         <Stepper label={t('Cycle step ({0})', unit)} value={c.tmStep || defaultIncrement(ex.id, unit)}
           step={1.25} onChange={v => setC(x => ({ ...x, tmStep: v }))} />
       </div>
+      {derivedTm !== base && <div className="small dim" style={{ marginBottom: 10 }}>
+        {t('Currently lifting off {0} {1} after completed cycles.', fmtNum(derivedTm), unit)}
+      </div>}
       <div className="small dim" style={{ marginBottom: 18 }}>
         {t('The training max goes up by the cycle step each time you finish a cycle clean.')}
       </div>
