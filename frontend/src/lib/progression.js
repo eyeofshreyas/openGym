@@ -19,6 +19,7 @@
 import { modeOf, repStep } from './history.js'
 import { EXIDX } from './exercises.js'
 import { cycleSessions, weekCount, cyclePos, rowsFor, CYCLES } from './cycles.js'
+import { best1RM } from './onerm.js'
 
 export const POLICIES = ['off', 'linear', 'greyskull', 'double', 'cycle', 'time']
 
@@ -74,6 +75,34 @@ export function policyFor(cfg, routine, mode) {
   const allowed = POLICIES_FOR[m] || ['off']
   const pick = (cfg && cfg.prog) || (routine && routine.prog) || (m === 'reps' ? 'linear' : 'off')
   return allowed.includes(pick) ? pick : 'off'
+}
+
+// 90 % of the best estimate the history holds — 5/3/1's own starting point. Snapped to the
+// step so the suggestion is already a loadable number.
+export function tmSuggestionFor(S, id, inc, weight) {
+  const best = best1RM(S, id)
+  return best && best.est > 0
+    ? Math.max(inc, Math.round(best.est * 0.9 / inc) * inc)
+    : Math.max(inc, weight || 0)
+}
+
+// The progression fields to persist for one exercise's config: the policy and its step, plus
+// — only when cycle is the policy actually in force — the table, training max and step it
+// runs on. A linear exercise must never pick up a stray training max, and someone who accepts
+// the suggested training max and saves without touching the stepper must get that number
+// stored, not nothing. Pulled out of the config sheet's save() so this shape is pinned by a
+// test rather than only by the one call site that builds it.
+export function progFieldsFor(c, id, routine, mode, S) {
+  const prog = {}
+  if (c.prog) prog.prog = c.prog
+  if (c.inc > 0) prog.inc = c.inc
+  if (policyFor({ ...c, id }, routine, mode) === 'cycle') {
+    const inc = c.inc > 0 ? c.inc : defaultIncrement(id, (S && S.unit) || 'kg')
+    prog.cyc = c.cyc || '531'
+    prog.tm = c.tm || tmSuggestionFor(S, id, inc, c.weight)
+    prog.tmStep = c.tmStep || defaultIncrement(id, (S && S.unit) || 'kg')
+  }
+  return prog
 }
 
 const round1 = v => Math.round(v * 10) / 10
@@ -193,11 +222,13 @@ export function nextPrescription(S, cfg, routine) {
     const tm = tmFor(S, cfg)
     const rows = rowsFor(cfg.cyc, week, tm, inc)
     const name = (CYCLES[cfg.cyc] || CYCLES['531']).name
+    // An unset training max (0, before the exercise config carries one) would otherwise divide
+    // by zero and print "Infinity %" — 0 % reads as nothing to work from, which is the truth.
+    const pct = w => tm > 0 ? Math.round(w / tm * 100) : 0
     return {
       policy, kind: 'cycle', rows, tm, cycle, week,
       why: ['{0} · cycle {1}, week {2} — {3} % to {4} % of a {5} {6} training max',
-        name, cycle + 1, week + 1, rows[0].w > 0 ? Math.round(rows[0].w / tm * 100) : 0,
-        Math.round(rows[rows.length - 1].w / tm * 100), fmtTm(tm), unit],
+        name, cycle + 1, week + 1, pct(rows[0].w), pct(rows[rows.length - 1].w), fmtTm(tm), unit],
     }
   }
 

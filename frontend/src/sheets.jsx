@@ -20,7 +20,7 @@ import { buildPlanBundle, parsePlan, mergePlan, printPlan } from './lib/plan-sha
 import { MEASURES, lengthUnit, logMeasures, delMeasure, latestOf } from './lib/measures.js'
 import { BAR, PLATES, barOf, platesOf, platesFor } from './lib/plates.js'
 import { estimate1RM, best1RM, is1RMRecord, REP_CAP } from './lib/onerm.js'
-import { nextPrescription, applyPrescription, policyFor, defaultIncrement, POLICIES_FOR, POLICY_NAME, POLICY_DESC, MAX_BW_SETS } from './lib/progression.js'
+import { nextPrescription, applyPrescription, policyFor, defaultIncrement, POLICIES_FOR, POLICY_NAME, POLICY_DESC, MAX_BW_SETS, tmSuggestionFor, progFieldsFor } from './lib/progression.js'
 import { CYCLES, CYCLE_KEYS } from './lib/cycles.js'
 import { MOBILE, shareExport } from './lib/mobile.js'
 import { candidateExercises, buildPrompt, planFromModel } from './lib/coach.js'
@@ -616,12 +616,7 @@ function ProgressionFields({ ex, mode, c, setC, routine, unit }) {
   const inherited = policyFor({ id: ex.id }, routine, mode)
   const active = policyFor({ ...c, id: ex.id }, routine, mode)
   const inc = c.inc > 0 ? c.inc : (mode === 'time' ? 5 : defaultIncrement(ex.id, unit))
-  // 90 % of the best estimate the history holds — 5/3/1's own starting point. Snapped to the
-  // step so the first suggestion is already a loadable number.
-  const best = best1RM(S(), ex.id)
-  const tmSuggestion = best && best.est > 0
-    ? Math.max(inc, Math.round(best.est * 0.9 / inc) * inc)
-    : Math.max(inc, (c.weight || 0))
+  const tmSuggestion = tmSuggestionFor(S(), ex.id, inc, c.weight)
   return <>
     <h4 className="sec">{t('Progression')}</h4>
     <div className="sect-b" style={{ marginBottom: 8 }}>
@@ -675,10 +670,9 @@ function ExConfig({ ex, existing, onSave, onDelete, close, routine }) {
     close()
     const sets = Math.max(1, Math.round(c.sets) || (cardio ? 1 : 3))
     // Only carry progression settings that differ from the inherited default, so a plan file
-    // stays readable and "follow the routine" keeps meaning exactly that.
-    const prog = {}
-    if (c.prog) prog.prog = c.prog
-    if (c.inc > 0) prog.inc = c.inc
+    // stays readable and "follow the routine" keeps meaning exactly that. For a cycle, that
+    // also means its table, training max and step — see progFieldsFor.
+    const prog = progFieldsFor(c, ex.id, routine, mode, st)
     // Written only when it differs from what the dataset already says, so a barbell config
     // stays exactly the shape it was before these flags existed.
     // `bodyweight` is true of a hold as much as of a set of reps; `side` is not — it counts

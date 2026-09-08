@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import {
   readSession, sessionsFor, stallCount, nextPrescription, applyPrescription,
-  policyFor, defaultIncrement, POLICIES_FOR, DELOAD_AFTER, MAX_BW_SETS, tmFor, POLICY_NAME, POLICY_DESC
+  policyFor, defaultIncrement, POLICIES_FOR, DELOAD_AFTER, MAX_BW_SETS, tmFor, POLICY_NAME, POLICY_DESC,
+  progFieldsFor
 } from './progression.js'
 import { EXDB } from './exercises.js'
 import { cyclePos } from './cycles.js'
@@ -691,5 +692,48 @@ describe('a prescribed cycle session, recorded and read back', () => {
   it('adds nothing to the target for a policy that has no rows', () => {
     const e = buildEntry({ unit: 'kg', workouts: [] }, { id: '0025', sets: 3, reps: 5, weight: 60, prog: 'linear' })
     expect(e.target.rows).toBeUndefined()
+  })
+})
+
+// Fix round 1, finding 1: the config sheet's save() built its `prog` object from only
+// `c.prog` and `c.inc`, dropping `cyc`/`tm`/`tmStep` entirely — a cycle exercise saved with no
+// table, no training max and no step. progFieldsFor is what save() now calls.
+describe('progFieldsFor persists what the cycle sheet configured', () => {
+  const S = { unit: 'kg', workouts: [] }
+
+  it('round-trips cyc, tm and tmStep for a cycle policy', () => {
+    const c = { sets: 3, reps: 5, weight: 0, prog: 'cycle', cyc: 'bbb', tm: 120, tmStep: 5 }
+    const prog = progFieldsFor(c, '0025', null, 'reps', S)
+    expect(prog.prog).toBe('cycle')
+    expect(prog.cyc).toBe('bbb')
+    expect(prog.tm).toBe(120)
+    expect(prog.tmStep).toBe(5)
+  })
+
+  it('stores the suggested training max when the stepper was never touched', () => {
+    const c = { sets: 3, reps: 5, weight: 60, prog: 'cycle', cyc: '531' }
+    const prog = progFieldsFor(c, '0025', null, 'reps', S)
+    expect(prog.tm).toBe(60)
+  })
+
+  it('gains no cyc, tm or tmStep for a policy that is not cycle', () => {
+    const c = { sets: 3, reps: 5, weight: 60, prog: 'linear' }
+    const prog = progFieldsFor(c, '0025', null, 'reps', S)
+    expect(prog.cyc).toBeUndefined()
+    expect(prog.tm).toBeUndefined()
+    expect(prog.tmStep).toBeUndefined()
+  })
+})
+
+// Fix round 1, finding 2: the cycle branch of nextPrescription divided by `tm` with no zero
+// guard, so a training max of 0 printed "Infinity %" in the plan line.
+describe('nextPrescription guards a zero training max', () => {
+  it('produces no Infinity anywhere in the why args', () => {
+    const S = { unit: 'kg', workouts: [] }
+    const p = nextPrescription(S, { id: '0025', sets: 3, reps: 5, weight: 0, prog: 'cycle', cyc: '531', tm: 0 }, null)
+    expect(p.why.some(a => typeof a === 'number' && !Number.isFinite(a))).toBe(false)
+    expect(p.why.join(' ')).not.toContain('Infinity')
+    expect(p.why[4]).toBe(0)
+    expect(p.why[5]).toBe(0)
   })
 })
