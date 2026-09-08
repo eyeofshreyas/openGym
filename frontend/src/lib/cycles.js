@@ -52,3 +52,34 @@ export function rowsFor(cyc, week, tm, step) {
   const wk = weeks[((week % weeks.length) + weeks.length) % weeks.length]
   return wk.map(([pct, r, amrap]) => ({ w: snap((tm || 0) * pct / 100, step), r, amrap: !!amrap }))
 }
+
+/**
+ * Past sessions of one exercise that were logged against a cycle target, oldest first.
+ *
+ * `target.cyc` is the marker, which makes this self-anchoring: everything you lifted before
+ * switching the exercise onto a cycle carries no such target and does not count, so there is
+ * no "cycle start date" to store, migrate or get wrong.
+ */
+export function cycleSessions(S, exId) {
+  const out = []
+  ;(S.workouts || []).forEach(w => {
+    const entry = (w.entries || []).find(e => e.id === exId)
+    if (entry && entry.target && entry.target.cyc && (entry.sets || []).some(s => s.done)) {
+      out.push({ d: w.d, entry })
+    }
+  })
+  return out
+}
+
+/**
+ * Which week of which cycle the next session of this exercise is, both zero-based.
+ *
+ * Derived rather than stored, like every other decision the engine makes. Delete a mislogged
+ * workout and the position steps back on its own; two lifts drift apart only if you genuinely
+ * trained one more often than the other, which is the right answer rather than a bug.
+ */
+export function cyclePos(S, exId, cyc) {
+  const n = cycleSessions(S, exId).length
+  const len = weekCount(cyc)
+  return { n, cycle: Math.floor(n / len), week: n % len }
+}

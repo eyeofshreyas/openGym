@@ -77,3 +77,66 @@ describe('turning a week into sets', () => {
     expect(rowsFor('531', 4, 100, 2.5)).toEqual(rowsFor('531', 0, 100, 2.5))
   })
 })
+
+import { cycleSessions, cyclePos } from './cycles.js'
+
+// A finished session. `cyc` on the target is the marker that says "this was a cycle session";
+// history from before you switched to 5/3/1 has none and must not count.
+const sess = (d, opts = {}) => ({
+  d,
+  entries: [{
+    id: '0025',
+    target: opts.plain ? { id: '0025', reps: 5 } : { id: '0025', cyc: '531', rows: [{ w: 100, r: 5, amrap: true }] },
+    sets: [{ w: 100, r: 5, done: opts.done !== false }],
+  }],
+})
+
+describe('where you are in the cycle', () => {
+  it('counts nothing when nothing has been logged', () => {
+    expect(cyclePos({ workouts: [] }, '0025', '531')).toEqual({ n: 0, cycle: 0, week: 0 })
+  })
+
+  it('ignores the history from before you switched to a cycle', () => {
+    const S = { workouts: [sess('2026-01-01', { plain: true }), sess('2026-01-08', { plain: true })] }
+    expect(cyclePos(S, '0025', '531').n).toBe(0)
+  })
+
+  it('ignores a session where nothing was actually ticked off', () => {
+    const S = { workouts: [sess('2026-01-01', { done: false })] }
+    expect(cyclePos(S, '0025', '531').n).toBe(0)
+  })
+
+  it('walks week by week and rolls into the next cycle', () => {
+    const days = ['2026-01-01', '2026-01-08', '2026-01-15', '2026-01-22', '2026-01-29', '2026-02-05']
+    const at = n => cyclePos({ workouts: days.slice(0, n).map(d => sess(d)) }, '0025', '531')
+    expect(at(0)).toEqual({ n: 0, cycle: 0, week: 0 })
+    expect(at(3)).toEqual({ n: 3, cycle: 0, week: 3 })
+    expect(at(4)).toEqual({ n: 4, cycle: 1, week: 0 })
+    expect(at(6)).toEqual({ n: 6, cycle: 1, week: 2 })
+  })
+
+  it('steps back on its own when a mislogged workout is deleted', () => {
+    // The reason position is derived rather than stored: there is nothing to repair.
+    const days = ['2026-01-01', '2026-01-08', '2026-01-15']
+    const S = { workouts: days.map(d => sess(d)) }
+    expect(cyclePos(S, '0025', '531').week).toBe(3)
+    S.workouts = S.workouts.filter(w => w.d !== '2026-01-15')
+    expect(cyclePos(S, '0025', '531').week).toBe(2)
+  })
+
+  it('counts each lift separately, because each lift is trained separately', () => {
+    const S = { workouts: [sess('2026-01-01'), sess('2026-01-08')] }
+    expect(cyclePos(S, '0025', '531').n).toBe(2)
+    expect(cyclePos(S, '0043', '531').n).toBe(0)
+  })
+
+  it('hands back the sessions themselves, oldest first', () => {
+    const S = { workouts: [sess('2026-01-01'), sess('2026-01-08')] }
+    expect(cycleSessions(S, '0025').map(s => s.d)).toEqual(['2026-01-01', '2026-01-08'])
+  })
+
+  it('wraps on the length of the table it is given', () => {
+    const S = { workouts: ['a', 'b', 'c', 'd', 'e'].map((_, i) => sess('2026-01-0' + (i + 1))) }
+    expect(cyclePos(S, '0025', '531')).toEqual({ n: 5, cycle: 1, week: 1 })
+  })
+})
