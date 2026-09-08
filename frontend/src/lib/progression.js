@@ -18,6 +18,7 @@
 
 import { modeOf, repStep } from './history.js'
 import { EXIDX } from './exercises.js'
+import { cycleSessions, weekCount } from './cycles.js'
 
 export const POLICIES = ['off', 'linear', 'greyskull', 'double', 'time']
 
@@ -299,4 +300,26 @@ export function applyPrescription(sets, p) {
     while (out.length < p.sets) out.push({ ...seed, done: false })
   }
   return out
+}
+
+/**
+ * The training max for the cycle this exercise is about to start.
+ *
+ * Derived like everything else: the base you set, then one step for every cycle you finished
+ * clean. A cycle whose sets fell short does not advance it — it resets to 90 %, which is what
+ * 5/3/1 says to do and the same back-off the linear policies take on a stall.
+ *
+ * Only whole cycles count. Part way through, the training max is whatever it was when the
+ * cycle started, so the percentages you are working to do not move under you mid-cycle.
+ */
+export function tmFor(S, cfg) {
+  const step = cfg.tmStep > 0 ? cfg.tmStep : defaultIncrement(cfg.id, (S && S.unit) || 'kg')
+  const len = weekCount(cfg.cyc)
+  const sessions = cycleSessions(S, cfg.id)
+  let tm = cfg.tm > 0 ? cfg.tm : 0
+  for (let i = 0; i + len <= sessions.length; i += len) {
+    const clean = sessions.slice(i, i + len).every(x => readSession(x.entry, cfg).ok)
+    tm = clean ? snap(tm + step, step) : Math.max(step, snap(tm * DELOAD_FACTOR, step))
+  }
+  return tm
 }

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   readSession, sessionsFor, stallCount, nextPrescription, applyPrescription,
-  policyFor, defaultIncrement, POLICIES_FOR, DELOAD_AFTER, MAX_BW_SETS
+  policyFor, defaultIncrement, POLICIES_FOR, DELOAD_AFTER, MAX_BW_SETS, tmFor
 } from './progression.js'
 import { EXDB } from './exercises.js'
 
@@ -543,5 +543,52 @@ describe('readSession against per-set targets', () => {
       { w: 100, r: 5, done: true }, { w: 100, r: 5, done: true }, { w: 100, r: 5, done: true }] }
     expect(readSession(e).ok).toBe(true)
     expect(readSession(e).goal).toBe(5)
+  })
+})
+
+describe('the training max', () => {
+  const rows = [{ w: 65, r: 5, amrap: false }, { w: 75, r: 5, amrap: false }, { w: 85, r: 5, amrap: true }]
+  const cfg = { id: '0025', prog: 'cycle', cyc: '531', tm: 100, tmStep: 2.5 }
+  // One finished cycle session. `hit` false makes the top set fall short of its minimum.
+  const s = (d, hit = true) => ({
+    d,
+    entries: [{ id: '0025', target: { id: '0025', cyc: '531', rows },
+      sets: [{ w: 65, r: 5, done: true }, { w: 75, r: 5, done: true }, { w: 85, r: hit ? 5 : 2, done: true }] }],
+  })
+  const S = (...ws) => ({ unit: 'kg', workouts: ws })
+
+  it('starts at the base you set', () => {
+    expect(tmFor(S(), cfg)).toBe(100)
+  })
+
+  it('does not move part way through a cycle', () => {
+    expect(tmFor(S(s('1'), s('2'), s('3')), cfg)).toBe(100)
+  })
+
+  it('goes up one step for a cycle you completed', () => {
+    expect(tmFor(S(s('1'), s('2'), s('3'), s('4')), cfg)).toBe(102.5)
+  })
+
+  it('keeps going up, cycle after cycle', () => {
+    const eight = ['1', '2', '3', '4', '5', '6', '7', '8'].map(d => s(d))
+    expect(tmFor(S(...eight), cfg)).toBe(105)
+  })
+
+  it('drops to 90 % after a cycle whose top set fell short', () => {
+    // What 5/3/1 says to do, and it is what the engine already does on a stall elsewhere.
+    expect(tmFor(S(s('1'), s('2'), s('3', false), s('4')), cfg)).toBe(90)
+  })
+
+  it('snaps the reset to something loadable rather than to a fraction', () => {
+    expect(tmFor(S(s('1'), s('2'), s('3', false), s('4')), { ...cfg, tm: 142.5 })).toBe(127.5)
+  })
+
+  it('recovers upward from a reset once a cycle goes clean', () => {
+    const eight = ['1', '2', '3', '4', '5', '6', '7', '8'].map((d, i) => s(d, i !== 2))
+    expect(tmFor(S(...eight), cfg)).toBe(92.5)
+  })
+
+  it('never goes below a single step', () => {
+    expect(tmFor(S(s('1'), s('2'), s('3', false), s('4')), { ...cfg, tm: 2.5 })).toBe(2.5)
   })
 })
