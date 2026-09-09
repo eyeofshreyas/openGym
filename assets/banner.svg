@@ -8,13 +8,13 @@
   <rect width="660" height="190" rx="22" fill="url(#bg)"/>
   <rect x="1.5" y="1.5" width="657" height="187" rx="20.5" fill="none" stroke="#2b3140" stroke-width="3"/>
 
-  <!-- dumbbell mark (centered to the text block) -->
-  <g transform="translate(122,96) scale(0.8)" fill="#a3e635">
-    <rect x="-72" y="-10" width="144" height="20" rx="7"/>
-    <rect x="-80" y="-36" width="20" height="72" rx="7"/>
-    <rect x="-104" y="-25" width="17" height="50" rx="7"/>
-    <rect x="60"  y="-36" width="20" height="72" rx="7"/>
-    <rect x="87"  y="-25" width="17" height="50" rx="7"/>
+  <!-- dumbbell mark — same geometry as frontend/resources/icon.svg, centred on the origin -->
+  <g transform="translate(122,96) scale(0.45)" fill="#a3e635">
+    <rect x="-86" y="-22" width="172" height="44" rx="10"/>
+    <rect x="-130" y="-92" width="52" height="184" rx="18"/>
+    <rect x="78" y="-92" width="52" height="184" rx="18"/>
+    <rect x="-184" y="-56" width="40" height="112" rx="16"/>
+    <rect x="144" y="-56" width="40" height="112" rx="16"/>
   </g>
 
   <!-- wordmark + tagline -->

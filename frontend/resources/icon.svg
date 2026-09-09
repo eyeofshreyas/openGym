@@ -1,13 +1,16 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 512 512">
   <!-- App-icon source == the PWA icon (public/icon-512.png), geometry traced 1:1 so the
        native app, the home-screen PWA and the website favicon all show the same icon.
-       Generate platform icons + splash via `npx @capacitor/assets generate` — docs/MOBILE.md. -->
+       Generate platform icons + splash via `npx @capacitor/assets generate` — docs/MOBILE.md.
+       ponytail: every mark stays inside the maskable safe zone (a centred circle of r=205,
+       i.e. 80% of 512) so a circular Android mask can't clip a collar off. Widen only if
+       manifest.json drops the "maskable" purpose. -->
   <rect width="512" height="512" fill="#0c0e12"/>
   <g fill="#a3e635">
-    <rect x="80" y="242" width="352" height="28"/>
-    <rect x="80" y="199" width="36" height="114"/>
-    <rect x="131" y="169" width="47" height="174"/>
-    <rect x="334" y="169" width="47" height="174"/>
-    <rect x="396" y="199" width="36" height="114"/>
+    <rect x="170" y="234" width="172" height="44" rx="10"/>
+    <rect x="126" y="164" width="52" height="184" rx="18"/>
+    <rect x="334" y="164" width="52" height="184" rx="18"/>
+    <rect x="72" y="200" width="40" height="112" rx="16"/>
+    <rect x="400" y="200" width="40" height="112" rx="16"/>
   </g>
 </svg>
