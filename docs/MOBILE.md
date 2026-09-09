@@ -43,16 +43,31 @@ into both native projects — re-run it after every web-code change before build
 
 ## App icons & splash screens
 
-`frontend/resources/icon.svg` is the 1024×1024 source (the app's dumbbell glyph on the
-app background). Generate all platform assets from it on a machine with the tooling:
+`frontend/resources/icon.svg` is the 1024×1024 source: the dumbbell glyph in black on
+the app's accent green, inverted so the icon doesn't vanish in a home-screen grid of dark
+icons. `splash.svg` / `splash-dark.svg` are separate sources that keep the glyph green on
+the dark backdrop, because a black glyph would disappear on a dark splash screen.
+
+Generate the native assets from them on a machine with the tooling:
 
 ```sh
 cd frontend
-npx @capacitor/assets generate --iconBackgroundColor '#0c0e12' --splashBackgroundColor '#0c0e12'
+npx @capacitor/assets generate --android --ios \
+  --iconBackgroundColor '#30d158' --splashBackgroundColor '#0c0e12' --splashBackgroundColorDark '#0c0e12'
 ```
 
+**Keep `--android --ios`.** Without them the generator also runs its `pwa` target, which
+deletes `public/icon-180.png` and rewrites `public/manifest.json` to point at webp icons
+in a new `frontend/icons/` directory. The PWA icons in `public/` are maintained by hand —
+re-export them from `icon.svg` yourself if the glyph changes.
+
+Note that `public/manifest.json` declares `icon-512.png` as `any maskable`, so every mark
+in `icon.svg` has to stay inside the maskable safe zone — a centred circle of r=205 in the
+512 viewBox. Anything outside it gets clipped by a circular Android mask.
+
 (If the generator won't take the SVG directly, export it to `resources/icon.png` at
-1024×1024 first — any image tool can do it.)
+1024×1024 first — any image tool can do it. Watch out for `--` inside SVG comments: it's
+illegal in XML and the generator rejects the file with a "corrupt header" error.)
 
 ## Distribution — deliberately no app stores
 

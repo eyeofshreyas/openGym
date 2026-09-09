@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2732" height="2732" viewBox="0 0 1024 1024">
+  <!-- Splash source. The icon inverts (black on green) because it has to survive a
+       home-screen grid; a splash fills the screen, so it keeps the app's own dark
+       backdrop with the mark in that same green. Same geometry as icon.svg, centred. -->
+  <rect width="1024" height="1024" fill="#0c0e12"/>
+  <g fill="#30d158" transform="translate(256,256)">
+    <rect x="170" y="234" width="172" height="44" rx="10"/>
+    <rect x="126" y="164" width="52" height="184" rx="18"/>
+    <rect x="334" y="164" width="52" height="184" rx="18"/>
+    <rect x="72" y="200" width="40" height="112" rx="16"/>
+    <rect x="400" y="200" width="40" height="112" rx="16"/>
+  </g>
+</svg>
