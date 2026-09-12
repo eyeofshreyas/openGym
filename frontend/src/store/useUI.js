@@ -40,6 +40,7 @@ export const useUI = create((set, get) => ({
 
   startRest(sec) {
     get().stopRest()
+    get().stopWork()          // rest and work timers must never run together
     const endsAt = Date.now() + sec * 1000
     set({ timer: { left: sec, total: sec, endsAt } })
     pushRestTimer(sec)

@@ -12,3 +12,4 @@ dist/
 *.litertlm
 gemma-*/
 data-dev/
+.firecrawl/

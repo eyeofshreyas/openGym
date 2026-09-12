@@ -23,7 +23,7 @@ export default function RoutineEdit() {
   useEffect(() => { if (!r) nav('/plan') }, [!!r])
   if (!r) return null
 
-  const edit = fn => update(s => { fn(s.routines.find(x => x.id === id).ex) })
+  const edit = fn => update(s => { const cur = s.routines.find(x => x.id === id); if (cur) fn(cur.ex) })
   const move = (i, dir) => edit(ex => { const j = i + dir; if (j < 0 || j >= ex.length) return;[ex[i], ex[j]] = [ex[j], ex[i]]; cleanupSg(ex) })
   const toggleLink = i => edit(ex => {
     if (i < 1) return

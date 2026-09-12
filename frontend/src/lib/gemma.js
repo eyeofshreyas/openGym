@@ -18,7 +18,16 @@ async function nativePlugin() {
   return plugin
 }
 
+// ponytail: throwaway browser mock to click through the AI flow without an Android build —
+// revert this block once you're done testing.
+const MOCK = true
+const MOCK_PLAN = JSON.stringify({ routines: [
+  { name: 'Push', day: 1, exercises: ['Barbell Bench Press', 'Barbell Incline Bench Press', 'Dumbbell Standing Overhead Press', 'Dumbbell Lateral Raise', 'Cable Triceps Pushdown (V-Bar)', 'Chest Dip'] },
+  { name: 'Legs', day: 5, exercises: ['Barbell Bench Press'] },
+] })
+
 export async function modelStatus() {
+  if (MOCK && !MOBILE) return { installed: true, bytes: 555e6 }
   const p = await nativePlugin()
   if (!p) return NONE
   try { return await p.status() } catch (e) { return NONE }
@@ -44,6 +53,7 @@ export async function generate(prompt) {
   if (generating) throw new Error('a generation is already in progress')
   generating = true
   try {
+    if (MOCK && !MOBILE) { await new Promise(r => setTimeout(r, 800)); return MOCK_PLAN }
     const p = await nativePlugin()
     if (!p) throw new Error('unavailable')
     const r = await p.generate({ prompt })
@@ -54,6 +64,7 @@ export async function generate(prompt) {
 }
 
 export async function unload() {
+  if (MOCK && !MOBILE) return
   const p = await nativePlugin()
   if (p) await p.unload().catch(() => {})
 }
