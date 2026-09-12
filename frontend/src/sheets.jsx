@@ -3,7 +3,7 @@ import { useStore } from './store/useStore.js'
 import { useUI } from './store/useUI.js'
 import { EXDB, EXIDX, BODYPARTS, isCardio, isBodyweightEq, allExercises, equipmentOf } from './lib/exercises.js'
 import { fmtDate, fmtNum, fmtVol, fmtDur, durPart, todayISO, uid, exCount, DAYN, MONTHS_LONG, ACCENTS } from './lib/format.js'
-import { lastEntryFor, bestWeightFor, buildSets, effectiveRoutineId, workoutVolume, setsDone, setsDoneActive, lastBW, supersetUnits, unitOf, setLabel, defaultConfig, cleanupSg, modeOf, effortOf, isBw, isPerSide, sideReps } from './lib/history.js'
+import { bestWeightFor, buildSets, effectiveRoutineId, workoutVolume, setsDone, setsDoneActive, lastBW, supersetUnits, unitOf, setLabel, defaultConfig, cleanupSg, modeOf, effortOf, isBw, isPerSide, sideReps } from './lib/history.js'
 import { beep, vibrate } from './lib/sound.js'
 import { t, instrFor, getLang, INSTR_LANGS } from './lib/i18n.js'
 import { nav } from './lib/nav.js'
@@ -28,6 +28,9 @@ import { generate, unload } from './lib/gemma.js'
 import { substitutesFor } from './lib/substitutes.js'
 import { photoUrl, pickPhoto, uploadPhoto, deletePhoto } from './lib/photo.js'
 import { buildShareCard, shareOrDownload } from './lib/shareCard.js'
+import { displayScale, scaleName } from './lib/effort.js'
+import { exerciseProgress, bestSetVolumeFor, bestSessionVolumeFor, workoutsWithExercise } from './lib/exerciseProgress.js'
+import LineChart from './components/LineChart.jsx'
 
 const S = () => useStore.getState().S
 const update = (...a) => useStore.getState().update(...a)
@@ -408,28 +411,88 @@ function OneRM({ ex }) {
   </>
 }
 
+// Summary / History / How to — everything the old single-scroll sheet had, plus the progress
+// chart and PR breakdown Stats already computes for the exercise picker there (exerciseProgress
+// is shared with Stats so the two never disagree on what "best" means). No Strength Level and
+// no Leaderboard: the first needs bodyweight-relative standards data this app doesn't have, and
+// the second needs other users' data — an actual social feature, not something to add quietly.
 function ExerciseDetail({ ex, close }) {
   const st = useStore(s => s.S)
-  const last = lastEntryFor(st, ex.id)
+  const [tab, setTab] = useState('summary')
+  const [metric, setMetric] = useState('top')
   const best = bestWeightFor(st, ex.id)
+  const kind = displayScale(st)
+  const hd = scaleName(kind)
+  const { curCardio, curTimed, exUnit, exBest, e1Pts, e1Best, showE1, showEff, effPts, topPts, exOpts } = exerciseProgress(st, ex.id, kind)
+  const onE1 = showE1 && metric === 'e1rm'
+  const onEff = showEff && metric === 'effort'
+  const setVol = bestSetVolumeFor(st, ex.id)
+  const sessionVol = bestSessionVolumeFor(st, ex.id)
+  const hist = workoutsWithExercise(st, ex.id)
+
   return <>
     <h3 className="capitalize">{ex.n}</h3>
     <Media ex={ex} />
-    <div className="row" style={{ gap: 6, flexWrap: 'wrap', margin: '10px 0' }}>
-      <span className="tag acc">{t(ex.bp)}</span>
-      {ex.tg && <span className="tag"><Icon name="target" />{t(ex.tg)}</span>}
-      <span className="tag"><Icon name="dumbbell" />{t(ex.eq)}</span>
-      {(ex.sm || []).slice(0, 3).map((s, i) => <span key={i} className="tag">{t(s)}</span>)}
+    <div style={{ margin: '12px 0 14px' }}>
+      <Segmented value={tab} onChange={setTab} options={[
+        { value: 'summary', label: t('Summary') },
+        { value: 'history', label: t('History') },
+        { value: 'howto', label: t('How to') },
+      ]} />
     </div>
-    {ex.desc && <div className="exnote">{ex.desc}</div>}
-    {best > 0 && <div className="small row" style={{ marginBottom: 6, gap: 5 }}><Icon name="trophy" style={{ fontSize: 14, color: 'var(--yellow)' }} />{t('Best:')} <b className="accent">{fmtNum(best)} {st.unit}</b>{last ? ` · ${t('last')} ${fmtDate(last.d)}: ${last.sets.map(s => setLabel(ex.id, s, last.target)).join(', ')}` : ''}</div>}
-    <Button variant="primary" icon="plus" style={{ margin: '10px 0 4px' }} onClick={() => addToRoutineSheet(ex)}>{t('Add to my plan')}</Button>
-    {ex.custom && <div className="row" style={{ gap: 8, marginTop: 8 }}>
-      <Button icon="pencil" style={{ flex: 1 }} onClick={() => { close(); customExSheet(ex) }}>{t('Edit')}</Button>
-      <Button variant="danger" icon="trash" style={{ flex: 1 }} onClick={() => deleteCustomEx(ex, close)}>{t('Delete')}</Button>
-    </div>}
-    {!isCardio(ex) && <OneRM ex={ex} />}
-    {instrFor(ex).length > 0 &&<><h4 className="sec">{t('How to')}{!INSTR_LANGS.includes(getLang()) && <span className="dim" style={{ textTransform: 'none', letterSpacing: 0 }}> · {t('instructions in English')}</span>}</h4><ol className="steps-list">{instrFor(ex).map((s, i) => <li key={i}>{s}</li>)}</ol></>}
+
+    {tab === 'summary' && <>
+      <div className="row" style={{ gap: 6, flexWrap: 'wrap', marginBottom: 10 }}>
+        <span className="tag acc">{t(ex.bp)}</span>
+        {ex.tg && <span className="tag"><Icon name="target" />{t(ex.tg)}</span>}
+        <span className="tag"><Icon name="dumbbell" />{t(ex.eq)}</span>
+        {(ex.sm || []).slice(0, 3).map((s, i) => <span key={i} className="tag">{t(s)}</span>)}
+      </div>
+      {ex.desc && <div className="exnote">{ex.desc}</div>}
+      <Button variant="primary" icon="plus" style={{ margin: '10px 0 4px' }} onClick={() => addToRoutineSheet(ex)}>{t('Add to my plan')}</Button>
+      {ex.custom && <div className="row" style={{ gap: 8, marginTop: 8 }}>
+        <Button icon="pencil" style={{ flex: 1 }} onClick={() => { close(); customExSheet(ex) }}>{t('Edit')}</Button>
+        <Button variant="danger" icon="trash" style={{ flex: 1 }} onClick={() => deleteCustomEx(ex, close)}>{t('Delete')}</Button>
+      </div>}
+
+      {exBest > 0 && <>
+        {exOpts.length > 1 && <div style={{ marginTop: 18 }}><Segmented className="seg-range" value={onEff ? 'effort' : onE1 ? 'e1rm' : 'top'} onChange={setMetric} options={exOpts} /></div>}
+        <div className="chart" style={{ marginTop: 10 }}>
+          {onEff
+            ? <LineChart points={effPts} h={150} unit={hd} color="var(--yellow)" invert={kind === 'rir'} />
+            : <LineChart points={onE1 ? e1Pts.map(p => ({ t: p.t, y: p.y, d: p.d })) : topPts} h={150} unit={exUnit} color="var(--blue)" />}
+        </div>
+        <div className="small dim" style={{ marginTop: 8 }}>
+          {onEff ? t('Average effort per workout') : onE1 ? t('Estimated 1RM per workout') : curCardio ? t('Top speed per workout') : curTimed ? t('Longest hold per workout') : t('Best set weight per workout')}
+        </div>
+      </>}
+
+      <h4 className="sec">{t('Personal records')}</h4>
+      <div className="sect-b">
+        <Row title={t('Heaviest weight')} value={best > 0 ? fmtNum(best) + ' ' + st.unit : '—'} />
+        <Row title={t('Best est. 1RM')} value={e1Best ? fmtNum(e1Best.est) + ' ' + st.unit : '—'} />
+        <Row title={t('Best set volume')} value={setVol > 0 ? fmtVol(setVol, st.unit) : '—'} />
+        <Row title={t('Best session volume')} value={sessionVol > 0 ? fmtVol(sessionVol, st.unit) : '—'} />
+      </div>
+
+      {!isCardio(ex) && <OneRM ex={ex} />}
+    </>}
+
+    {tab === 'history' && (hist.length > 0
+      ? <div className="sect-b">{hist.map(w => {
+          const en = w.entries.find(e => e.id === ex.id)
+          return <Row key={w.id} title={fmtDate(w.d, true)}
+            subtitle={en.sets.filter(s => s.done).map(s => (s.wu ? 'W ' : '') + setLabel(ex.id, s, en.target)).join('  ·  ') || t('no sets')}
+            accessory="chevron" onClick={() => { close(); workoutDetailSheet(w) }} />
+        })}</div>
+      : <div className="empty"><div className="ico"><Icon name="history" /></div>{t('No history yet — log this exercise in a workout and it shows up here.')}</div>)}
+
+    {tab === 'howto' && (instrFor(ex).length > 0
+      ? <>
+          {!INSTR_LANGS.includes(getLang()) && <div className="dim small" style={{ marginBottom: 10 }}>{t('instructions in English')}</div>}
+          <ol className="steps-list">{instrFor(ex).map((s, i) => <li key={i}>{s}</li>)}</ol>
+        </>
+      : <div className="empty">{t('No instructions for this exercise yet.')}</div>)}
   </>
 }
 export const exerciseDetailSheet = ex => ui().openSheet(close => <ExerciseDetail ex={ex} close={close} />)

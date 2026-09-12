@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useStore } from '../store/useStore.js'
 import { EXIDX } from '../lib/exercises.js'
-import { lastBW, streakWeeks, setLabel, modeOf, effortOf } from '../lib/history.js'
+import { lastBW, streakWeeks, setLabel, effortOf } from '../lib/history.js'
 import { fmtNum, fmtDate, fmtVol, todayISO, weekKey } from '../lib/format.js'
 import { t } from '../lib/i18n.js'
 import { bwSheet, goalSheet, calendarSheet, workoutDetailSheet, WorkoutRow, bwDeltaColor, measuresSheet, measureHistorySheet } from '../sheets.jsx'
@@ -12,11 +12,11 @@ import Icon from '../components/Icon.jsx'
 import BodyMap, { BodyMapLegend } from '../components/BodyMap.jsx'
 import { loadOfWorkouts, rankOf, MUSCLE_NAME, TARGETED, WEEKLY_TARGET, perWeek, statusOf, weeksOfWindow } from '../lib/muscles.js'
 import { MEASURES, lengthUnit, latestOf, pointsOf, deltaOf } from '../lib/measures.js'
-import { e1rmSeries, best1RM } from '../lib/onerm.js'
 import {
-  hasEffort, displayScale, scaleName, toScale, avgRir, effortSummary, effortWeeks,
+  hasEffort, displayScale, scaleName, toScale, effortSummary, effortWeeks,
   effortHistogram, isHardSet, HARD_RIR
 } from '../lib/effort.js'
+import { exerciseProgress } from '../lib/exerciseProgress.js'
 import { Button, Segmented, SelectRow } from '../components/ui.jsx'
 
 // Which muscles the training in a window actually hit — and, the point of the card,
@@ -207,50 +207,9 @@ export default function Stats() {
 
   const exHist = [...new Set(S.workouts.flatMap(w => w.entries.map(e => e.id)))].filter(id => EXIDX[id]).sort((a, b) => EXIDX[a].n < EXIDX[b].n ? -1 : 1)
   const curEx = exId && exHist.includes(exId) ? exId : exHist[0] || null
-  // How this exercise was logged most recently decides what the curve means: top weight,
-  // longest hold or top speed. Sets logged in another mode lack the field and score 0, so a
-  // switched exercise drops its old points instead of mixing seconds into a weight chart.
-  const curMode = curEx ? (() => {
-    for (let i = S.workouts.length - 1; i >= 0; i--) {
-      const en = S.workouts[i].entries.find(e => e.id === curEx)
-      if (en) return modeOf({ ...(en.target || {}), id: curEx })
-    }
-    return modeOf({ id: curEx })
-  })() : 'reps'
-  const curCardio = curMode === 'cardio'
-  const curTimed = curMode === 'time'
-  const metric = s => curCardio ? (s.speed || 0) : curTimed ? (s.sec || 0) : (s.w || 0)
-  const exUnit = curCardio ? 'km/h' : curTimed ? 's' : S.unit
-  let exPts = [], exList = [], exBest = 0
-  if (curEx) {
-    S.workouts.forEach(w => {
-      const en = w.entries.find(e => e.id === curEx)
-      if (en) { const mx = Math.max(0, ...en.sets.filter(s => s.done).map(metric), curCardio || curTimed ? 0 : (en.topW || 0)); if (mx > 0) { exPts.push({ t: w.start, y: mx, d: w.d, sets: en.sets.filter(s => s.done), target: en.target }); if (mx > exBest) exBest = mx } }
-    })
-    exList = exPts.slice(-5).reverse()
-  }
-  // Estimated 1RM (issue #18) — only reps-mode training produces one, so cardio and timed
-  // work simply have no points and the toggle stays hidden.
-  const e1Pts = curEx ? e1rmSeries(S, curEx) : []
-  const e1Best = curEx ? best1RM(S, curEx) : null
-  const showE1 = e1Pts.length > 0
-  // Effort on this exercise, per session. It rides on the top-set curve as well as having a
-  // curve of its own, because the two only mean something together: the same weight moved
-  // with more left in the tank is progress a weight-only chart draws as a flat line.
-  const exRir = exPts.map(p => avgRir(p.sets))
-  const showEff = exRir.filter(v => v != null).length >= 3
-  const effPts = exPts.map((p, i) => (exRir[i] == null ? null : { t: p.t, y: toScale(kind, exRir[i]), d: p.d })).filter(Boolean)
+  const { curCardio, curTimed, exUnit, exList, exBest, e1Pts, e1Best, showE1, showEff, effPts, topPts, exOpts } = exerciseProgress(S, curEx, kind)
   const onE1 = showE1 && exMetric === 'e1rm'
   const onEff = showEff && exMetric === 'effort'
-  const topPts = exPts.map((p, i) => ({
-    t: p.t, y: p.y, d: p.d,
-    // 0 RIR (nothing left) is a full dot, 4+ a faint one; unrated sessions keep the plain line.
-    m: exRir[i] == null ? null : 1 - Math.min(4, Math.max(0, exRir[i])) / 4,
-    note: exRir[i] == null ? undefined : hd + ' ' + fmtNum(toScale(kind, exRir[i]))
-  }))
-  const exOpts = [{ value: 'top', label: t('Top set') }]
-  if (showE1) exOpts.push({ value: 'e1rm', label: t('Est. 1RM') })
-  if (showEff) exOpts.push({ value: 'effort', label: t('Effort') })
 
   return <>
     <div className="hdr"><div><h1>{t('Stats')}</h1><div className="sub">{t('Progress & history')}</div></div>
