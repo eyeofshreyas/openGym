@@ -27,6 +27,7 @@ import { candidateExercises, buildPrompt, planFromModel } from './lib/coach.js'
 import { generate, unload } from './lib/gemma.js'
 import { substitutesFor } from './lib/substitutes.js'
 import { photoUrl, pickPhoto, uploadPhoto, deletePhoto } from './lib/photo.js'
+import { buildShareCard, shareOrDownload } from './lib/shareCard.js'
 
 const S = () => useStore.getState().S
 const update = (...a) => useStore.getState().update(...a)
@@ -1043,15 +1044,26 @@ function removeWorkoutPhoto(id) {
 function WorkoutDetail({ w: initial, close }) {
   const st = useStore(s => s.S)
   const [broken, setBroken] = useState(false)
+  const [sharing, setSharing] = useState(false)
   const w = st.workouts.find(x => x.id === initial.id) || initial
   const hasPhoto = w.photo && !broken
+  const share = async () => {
+    setSharing(true)
+    try {
+      const stats = [...durPart(w.end - w.start), fmtVol(w.vol, st.unit), fmtDate(w.d, true)].join('   ·   ')
+      const blob = await buildShareCard(photoUrl(w.id, w.photo), w.name, stats)
+      await shareOrDownload(blob, 'opengym-' + w.d + '.jpg')
+    } catch { toast(t('Could not create the share image — try again.')) }
+    finally { setSharing(false) }
+  }
   return <>
     {hasPhoto && <img className="exmedia" style={{ width: '100%', maxHeight: 240, objectFit: 'cover', display: 'block' }}
       src={photoUrl(w.id, w.photo)} onError={() => setBroken(true)} />}
     <h3>{w.name}</h3>
     <div className="muted small" style={{ marginBottom: 12 }}>{[fmtDate(w.d, true), ...durPart(w.end - w.start), fmtVol(w.vol, st.unit), ...(w.bw ? [fmtNum(w.bw) + ' ' + st.unit] : [])].join(' · ')}</div>
-    <div className="row" style={{ gap: 8, marginBottom: 14 }}>
+    <div className="row" style={{ gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
       <Button size="sm" icon="camera" onClick={async () => { setBroken(false); await addWorkoutPhoto(w.id) }}>{hasPhoto ? t('Change photo') : t('Add a photo')}</Button>
+      {hasPhoto && <Button size="sm" icon="upload" disabled={sharing} onClick={share}>{sharing ? t('Preparing…') : t('Share')}</Button>}
       {hasPhoto && <Button size="sm" variant="danger" icon="trash" onClick={() => removeWorkoutPhoto(w.id)}>{t('Remove')}</Button>}
     </div>
     {w.note && <div className="exnote">{w.note}</div>}
