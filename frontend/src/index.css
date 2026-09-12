@@ -18,40 +18,47 @@
 
 /* ---------------------------------------------------------------- tokens -- */
 :root {
-  /* surfaces — dark is the default */
-  --bg:        #000000;
-  --bg-el:     #0e0e10;   /* elevated backdrop (sheets, bars) */
-  --surface:   #1c1c1e;   /* card / grouped-list fill */
-  --surface-2: #2c2c2e;   /* pressed + nested fill */
-  --surface-3: #3a3a3c;   /* controls (segmented track, switch off) */
+  /* surfaces — dark is the default. "Meet Day": a powerlifting scoreboard —
+     flat near-black panels, no glow, corners square like a flip-panel. */
+  --bg:        #0a0a0c;
+  --bg-el:     #111013;   /* elevated backdrop (sheets, bars) */
+  --surface:   #151417;   /* card / grouped-list fill */
+  --surface-2: #1d1c20;   /* pressed + nested fill */
+  --surface-3: #29282c;   /* controls (segmented track, switch off) */
 
   /* text */
-  --label:     #ffffff;
-  --label-2:   rgba(235,235,245,.60);
-  --label-3:   rgba(235,235,245,.32);
-  --label-4:   rgba(235,235,245,.18);
+  --label:     #eef0e6;   /* scoreboard white, not paper white */
+  --label-2:   rgba(238,240,230,.62);
+  --label-3:   rgba(238,240,230,.34);
+  --label-4:   rgba(238,240,230,.18);
 
   /* lines */
-  --sep:       rgba(84,84,88,.60);
-  --sep-op:    rgba(84,84,88,.34);   /* for edges sitting over blur */
+  --sep:       rgba(141,143,149,.34);
+  --sep-op:    rgba(141,143,149,.22);   /* for edges sitting over blur */
   --hair:      .5px;
 
-  /* system palette (iOS dark values) */
-  --blue:#0a84ff; --green:#30d158; --red:#ff453a; --orange:#ff9f0a;
+  /* system palette */
+  --blue:#0a84ff; --green:#30d158; --red:#d1362f; --orange:#ff9f0a;
   --yellow:#ffd60a; --teal:#40c8e0; --indigo:#5e5ce6; --pink:#ff375f;
-  --purple:#bf5af2; --mint:#63e6e2; --brown:#ac8e68; --grey:#8e8e93;
+  --purple:#bf5af2; --mint:#63e6e2; --brown:#ac8e68; --grey:#8d8f95;
 
-  /* accent (per-account, synced) */
+  /* accent (per-account, synced) — still personalizable; the scoreboard's own
+     primary action (the lit "good lift" panel) is --label/--bg, not this. */
   --acc:  var(--green);
   --acc-2:#248a3d;
   --on-acc:#000000;
   --acc-soft: color-mix(in srgb, var(--acc) 16%, transparent);
   --acc-line: color-mix(in srgb, var(--acc) 38%, transparent);
 
-  /* geometry */
-  --r-sm:8px; --r:12px; --r-lg:16px; --r-xl:22px; --r-card:14px;
+  /* geometry — square, not rounded. A scoreboard panel has an edge, not a corner. */
+  --r-sm:2px; --r:2px; --r-lg:2px; --r-xl:2px; --r-card:2px;
   --pad:16px;
   --icon-stroke:1.7;
+
+  /* type — condensed display for headlines and big numbers, drafting mono for data */
+  --f-body: 'IBM Plex Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,system-ui,sans-serif;
+  --f-display: 'Bebas Neue',var(--f-body);
+  --f-mono: 'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
 
   /* motion */
   --ease:cubic-bezier(.32,.72,0,1);
@@ -62,19 +69,21 @@
 }
 
 :root[data-theme="light"] {
-  --bg:        #f2f2f7;
-  --bg-el:     #f7f7fa;
+  /* "Meet Day" in daylight: a printed attempt sheet — white stock, black ink,
+     the same square panels and red for a live/failed attempt. */
+  --bg:        #f0efe9;
+  --bg-el:     #f7f6f1;
   --surface:   #ffffff;
-  --surface-2: #ececef;
-  --surface-3: #e3e3e8;
+  --surface-2: #eae8e1;
+  --surface-3: #ded9cf;
 
-  --label:     #000000;
-  --label-2:   rgba(60,60,67,.60);
-  --label-3:   rgba(60,60,67,.30);
-  --label-4:   rgba(60,60,67,.16);
+  --label:     #17161a;
+  --label-2:   rgba(23,22,26,.62);
+  --label-3:   rgba(23,22,26,.32);
+  --label-4:   rgba(23,22,26,.16);
 
-  --sep:       rgba(60,60,67,.29);
-  --sep-op:    rgba(60,60,67,.20);
+  --sep:       rgba(23,22,26,.24);
+  --sep-op:    rgba(23,22,26,.16);
 
   --blue:#007aff; --green:#34c759; --red:#ff3b30; --orange:#ff9500;
   --yellow:#ffcc00; --teal:#30b0c7; --indigo:#5856d6; --pink:#ff2d55;
@@ -113,8 +122,8 @@ html{
 }
 body{
   background:var(--bg);color:var(--label);
-  font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','SF Pro Display','Segoe UI',Roboto,system-ui,sans-serif;
-  font-size:17px;line-height:1.29;letter-spacing:-.01em;
+  font-family:var(--f-body);
+  font-size:17px;line-height:1.29;letter-spacing:-.005em;
   min-height:100vh;overscroll-behavior-y:none;overflow-x:clip;
   -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
   touch-action:manipulation;
@@ -171,10 +180,13 @@ body.resting #app{padding-bottom:calc(250px + var(--sab))}
 @keyframes viewfade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
 #app.vfade{animation:viewfade var(--med) var(--ease)}
 
-/* large title, the way a nav bar does it */
+/* large title, the way a scoreboard marquee does it */
 .hdr{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin:8px 0 18px}
-.hdr h1{font-size:34px;line-height:1.06;font-weight:700;letter-spacing:-.028em}
-.hdr .sub{color:var(--label-2);font-size:15px;letter-spacing:-.006em;margin-top:4px}
+.hdr h1{
+  font-family:var(--f-display);font-size:40px;line-height:.92;font-weight:400;
+  letter-spacing:.012em;text-transform:uppercase;
+}
+.hdr .sub{color:var(--label-2);font-size:15px;letter-spacing:-.006em;margin-top:5px}
 
 .iconbtn{
   width:36px;height:36px;border-radius:50%;flex:none;
@@ -208,9 +220,10 @@ h4.sec{
 /* ----------------------------------------------------------------- card -- */
 .card{
   background:var(--surface);border-radius:var(--r-card);
+  border:var(--hair) solid var(--sep-op);
   padding:16px;margin-bottom:12px;
 }
-.card .big{font-size:30px;font-weight:600;letter-spacing:-.026em;line-height:1.1}
+.card .big{font-family:var(--f-display);font-size:36px;font-weight:400;letter-spacing:.01em;line-height:1}
 
 /* ------------------------------------------------------ inset group list -- */
 .sect{margin-bottom:22px}
@@ -218,7 +231,7 @@ h4.sec{
   font-size:13px;font-weight:400;color:var(--label-2);
   letter-spacing:-.004em;padding:0 4px 7px;display:block;
 }
-.sect-b{background:var(--surface);border-radius:var(--r-card);overflow:hidden}
+.sect-b{background:var(--surface);border-radius:var(--r-card);border:var(--hair) solid var(--sep-op);overflow:hidden}
 .sect-f{font-size:13px;color:var(--label-2);padding:7px 4px 0;line-height:1.38}
 
 .lrow{
@@ -267,8 +280,9 @@ h4.sec{
 }
 .btn .icn{font-size:19px}
 .btn:active{transform:scale(.975)}
-.btn.primary{background:var(--acc);color:var(--on-acc)}
-.btn.primary:active{background:var(--acc-2)}
+/* the scoreboard's own "lit" button — a good-lift flash, not the personalised accent */
+.btn.primary{background:var(--label);color:var(--bg);font-family:var(--f-display);font-size:19px;letter-spacing:.03em;text-transform:uppercase}
+.btn.primary:active{background:var(--label-2)}
 .btn.tinted{background:var(--acc-soft);color:var(--acc)}
 .btn.danger{background:color-mix(in srgb,var(--red) 15%,transparent);color:var(--red)}
 .btn.ghost,.btn.plain{background:none;color:var(--acc);font-weight:400}
@@ -332,22 +346,25 @@ h4.sec{
 }
 .wday .lbl{font-size:11px;color:var(--label-3);font-weight:500;text-transform:uppercase;letter-spacing:.03em}
 .wday .num{font-size:17px;font-weight:400;margin:4px 0;letter-spacing:-.012em}
-.wday .dot{width:5px;height:5px;border-radius:50%;background:transparent;margin:0 auto}
-.wday .dot.plan{background:var(--label-3)}
-.wday .dot.ovr{background:var(--orange)}
-.wday .dot.done{background:var(--acc)}
+/* the week strip as a flight of attempt lights: lit white for a logged day,
+   red for the live one today — the same lamp language as the rest timer. */
+.wday .dot{width:6px;height:6px;border-radius:50%;background:transparent;margin:0 auto;box-shadow:0 0 0 1px var(--sep) inset}
+.wday .dot.plan{background:var(--surface-3);box-shadow:none}
+.wday .dot.ovr{background:var(--orange);box-shadow:none}
+.wday .dot.done{background:var(--label);box-shadow:0 0 6px color-mix(in srgb,var(--label) 55%,transparent)}
 .wday:active{background:var(--surface-2)}
 .wday.today .num{
-  background:var(--acc);color:var(--on-acc);font-weight:600;
+  background:var(--red);color:#fff;font-weight:600;
   width:31px;height:31px;border-radius:50%;display:flex;align-items:center;
   justify-content:center;margin:2px auto;
+  box-shadow:0 0 10px color-mix(in srgb,var(--red) 55%,transparent);
 }
 
 /* ----------------------------------------------------------------- list -- */
 .list{display:flex;flex-direction:column;gap:8px}
 .item{
   display:flex;align-items:center;gap:12px;background:var(--surface);
-  border-radius:var(--r-card);padding:10px 12px;min-height:60px;
+  border-radius:var(--r-card);border:var(--hair) solid var(--sep-op);padding:10px 12px;min-height:60px;
   transition:background var(--fast);text-align:left;width:100%;
 }
 .item:active{background:var(--surface-2)}
@@ -497,7 +514,7 @@ h4.sec{
 .stp .val i{font-style:normal;font-size:12px;color:var(--label-2);flex:none}
 .stp .num{
   width:100%;min-width:0;text-align:center;background:none;border:none;outline:none;
-  font-size:17px;font-weight:500;letter-spacing:-.012em;padding:0;
+  font-family:var(--f-mono);font-size:16px;font-weight:500;letter-spacing:0;padding:0;
   -moz-appearance:textfield;appearance:textfield;
 }
 .stp .num::-webkit-inner-spin-button{display:none}
@@ -625,13 +642,13 @@ h4.sec{
      clock hard to pick out mid-set. The blur stays, so it still sits above the page. */
   background:color-mix(in srgb,var(--surface) 97%,transparent);
   backdrop-filter:saturate(180%) blur(24px);-webkit-backdrop-filter:saturate(180%) blur(24px);
-  border-radius:var(--r-lg);padding:12px 14px;
+  border-radius:var(--r-lg);border:var(--hair) solid var(--sep-op);padding:12px 14px;
   display:flex;align-items:center;gap:12px;
   box-shadow:0 12px 34px -8px rgba(0,0,0,.55);
   animation:slideup var(--med) var(--ease);
 }
 @keyframes slideup{from{transform:translateY(16px);opacity:0}to{transform:none;opacity:1}}
-#timer .t{font-size:26px;font-weight:600;letter-spacing:-.026em;font-variant-numeric:tabular-nums;min-width:66px}
+#timer .t{font-family:var(--f-display);font-size:32px;font-weight:400;letter-spacing:.02em;font-variant-numeric:tabular-nums;min-width:66px}
 #timer .bar{flex:1;height:4px;background:var(--surface-3);border-radius:99px;overflow:hidden}
 #timer .bar i{display:block;height:100%;background:var(--acc);transition:width 1s linear}
 /* rest variant: −15/+15/Skip and the clock won't share one line on a phone, so the clock and
@@ -644,8 +661,8 @@ h4.sec{
 #timer.rest .acts .skip{margin-left:auto;min-width:84px}
 /* work timer (issue #16): the same bar doing the opposite job — outlined and tinted so a
    glance tells "you are holding this" apart from "you are recovering". */
-#timer.working{border:var(--hair) solid var(--acc)}
-#timer.working .t{color:var(--acc)}
+#timer.working{border:var(--hair) solid var(--red)}
+#timer.working .t{color:var(--red)}
 #timer.working .grow{flex:1;min-width:0}
 #timer.working .lbl{
   font-size:12px;color:var(--label-2);margin-bottom:5px;text-transform:capitalize;
@@ -726,14 +743,14 @@ h4.sec{
 }
 .bw-pm:active{background:var(--surface-2);transform:scale(.92)}
 .bw-read{
-  font-size:52px;font-weight:600;letter-spacing:-.035em;min-width:158px;text-align:center;
+  font-family:var(--f-display);font-size:64px;font-weight:400;letter-spacing:.01em;min-width:158px;text-align:center;
   font-variant-numeric:tabular-nums;line-height:1;
 }
-.bw-read .u{font-size:19px;color:var(--label-2);font-weight:400;letter-spacing:-.01em}
+.bw-read .u{font-size:19px;color:var(--label-2);font-weight:400;letter-spacing:-.01em;font-family:var(--f-body)}
 .bwin{display:flex;align-items:baseline;justify-content:center;gap:7px;margin:16px 0}
 .bwin input{
   width:150px;background:none;border:none;outline:none;text-align:right;
-  font-size:52px;font-weight:600;letter-spacing:-.035em;color:var(--label);
+  font-family:var(--f-display);font-size:64px;font-weight:400;letter-spacing:.01em;color:var(--label);
 }
 .bwin span{color:var(--label-2);font-size:19px}
 
@@ -803,7 +820,7 @@ h4.sec{
 .mrow .v{font-size:12px;color:var(--label-2);min-width:52px;text-align:right;flex:none}
 /* A headline number inside a card — tile weight without a tile around it, for the pair of
    readings at the top of the effort card. */
-.stat-v{font-size:26px;font-weight:600;letter-spacing:-.026em;line-height:1.1}
+.stat-v{font-family:var(--f-display);font-size:30px;font-weight:400;letter-spacing:.01em;line-height:1}
 .mchips{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
 .mchip{font-size:12px;padding:4px 9px;border-radius:99px;background:var(--surface-2);color:var(--label-2)}
 .mchip.miss{background:color-mix(in srgb,var(--orange) 16%,transparent);color:var(--orange)}
@@ -812,13 +829,13 @@ h4.sec{
 
 /* --- stat tiles --- */
 .tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
-.tile{background:var(--surface);border-radius:var(--r-card);padding:14px}
+.tile{background:var(--surface);border-radius:var(--r-card);border:var(--hair) solid var(--sep-op);padding:14px}
 .tile .l{
   color:var(--label-2);font-size:13px;font-weight:400;letter-spacing:-.004em;
   text-transform:none;display:flex;align-items:center;gap:5px;
 }
 .tile .l .icn{font-size:14px;color:var(--label)}
-.tile .v{font-size:26px;font-weight:600;letter-spacing:-.026em;margin-top:5px;line-height:1.1}
+.tile .v{font-family:var(--f-display);font-size:30px;font-weight:400;letter-spacing:.01em;margin-top:4px;line-height:1}
 .tile.tappable:active{background:var(--surface-2)}
 
 /* --- PR badge --- */

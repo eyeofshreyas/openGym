@@ -9,7 +9,7 @@ import { anyMeasures } from '../lib/measures.js'
 const KEY = 'gym_state_v1'
 export const DEF = {
   unit: 'kg', restSec: 90, sound: true, keepAwake: true, lang: 'en',
-  theme: 'dark', accent: 'lime', body: 'male', targetW: null,
+  theme: 'dark', accent: 'red', body: 'male', targetW: null,
   bodyweight: [], measures: {}, routines: [], week: {}, dayPlan: {},
   exWeights: {}, workouts: [], active: null, customEx: [], gifSize: 'full',
   // Bar weight and the plates you own, for the loading hint on barbell work. null, not a
