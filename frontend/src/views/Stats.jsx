@@ -181,7 +181,7 @@ function Measurements({ S }) {
         {/* One point is not a curve — the chart draws it as a wedge running off the left
             edge, which is what everyone's first measurement would look like. */}
         {pointsOf(series, range).length > 1
-          ? <div className="chart"><LineChart points={pointsOf(series, range)} h={160} unit={unit} color="var(--blue)" /></div>
+          ? <div className="chart"><LineChart points={pointsOf(series, range)} h={160} unit={unit} /></div>
           : <div className="muted small" style={{ marginTop: 10 }}>{t('One entry so far — log it again another day and the curve starts.')}</div>}
       </> : <div className="muted small" style={{ marginTop: 6 }}>{t('Nothing logged for this one yet.')}</div>}
     </> : <div className="muted small">{t('Waist, chest, arms — measured with a tape, tracked like your weight. Log a few and the curve starts here.')}</div>}
@@ -260,7 +260,7 @@ export default function Stats() {
           <div className="chart">
             {onEff
               ? <LineChart points={effPts} h={150} unit={hd} color="var(--yellow)" invert={kind === 'rir'} />
-              : <LineChart points={onE1 ? e1Pts.map(p => ({ t: p.t, y: p.y, d: p.d })) : topPts} h={150} unit={exUnit} color="var(--blue)" />}
+              : <LineChart points={onE1 ? e1Pts.map(p => ({ t: p.t, y: p.y, d: p.d })) : topPts} h={150} unit={exUnit} />}
           </div>
           <div style={{ marginTop: 8 }}>{exList.map((p, i) => <div key={i} className="row between small" style={{ padding: '6px 0', borderBottom: 'var(--hair) solid var(--sep)' }}>
             <span className="muted">{fmtDate(p.d, true)}</span><span>{p.sets.map(s => setLabel(curEx, s, p.target)).join('  ')}</span></div>)}</div>
