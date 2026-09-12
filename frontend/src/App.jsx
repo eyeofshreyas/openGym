@@ -33,6 +33,8 @@ function applyPrefs(theme, accent) {
   de.dataset.accent = ACCENTS[accent] ? accent : 'lime'
   const meta = document.querySelector('meta[name="theme-color"]')
   if (meta) meta.content = de.dataset.theme === 'light' ? '#f0efe9' : '#0a0a0c'
+  const favicon = document.querySelector('link[rel="icon"]')
+  if (favicon) favicon.href = de.dataset.theme === 'light' ? '/favicon-light.png' : '/favicon-dark.png'
 }
 
 function Shell() {

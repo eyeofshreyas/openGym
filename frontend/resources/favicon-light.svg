@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 512 512">
+  <!-- Browser-tab favicon for the app's light theme — see favicon-dark.svg. -->
+  <rect width="512" height="512" rx="112" fill="#f0efe9"/>
+  <g fill="#248a3d">
+    <rect x="170" y="234" width="172" height="44" rx="10"/>
+    <rect x="126" y="164" width="52" height="184" rx="18"/>
+    <rect x="334" y="164" width="52" height="184" rx="18"/>
+    <rect x="72" y="200" width="40" height="112" rx="16"/>
+    <rect x="400" y="200" width="40" height="112" rx="16"/>
+  </g>
+</svg>
