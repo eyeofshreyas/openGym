@@ -33,8 +33,23 @@ function applyPrefs(theme, accent) {
   de.dataset.accent = ACCENTS[accent] ? accent : 'lime'
   const meta = document.querySelector('meta[name="theme-color"]')
   if (meta) meta.content = de.dataset.theme === 'light' ? '#f0efe9' : '#0a0a0c'
+  drawFavicon(de.dataset.theme, getComputedStyle(de).getPropertyValue('--acc').trim())
+}
+
+// Same dumbbell mark as resources/icon.svg, drawn to a canvas so the favicon can pick up
+// the user's live theme + accent colour instead of shipping one PNG per combination.
+const FAVICON_MARK = [[170, 234, 172, 44], [126, 164, 52, 184], [334, 164, 52, 184], [72, 200, 40, 112], [400, 200, 40, 112]]
+function drawFavicon(theme, accent) {
+  const size = 64, s = size / 512
+  const canvas = document.createElement('canvas')
+  canvas.width = canvas.height = size
+  const ctx = canvas.getContext('2d')
+  ctx.fillStyle = theme === 'light' ? '#f0efe9' : '#0a0a0c'
+  ctx.fillRect(0, 0, size, size)
+  ctx.fillStyle = accent || '#30d158'
+  for (const [x, y, w, h] of FAVICON_MARK) ctx.fillRect(x * s, y * s, w * s, h * s)
   const favicon = document.querySelector('link[rel="icon"]')
-  if (favicon) favicon.href = de.dataset.theme === 'light' ? '/favicon-light.png' : '/favicon-dark.png'
+  if (favicon) favicon.href = canvas.toDataURL('image/png')
 }
 
 function Shell() {
