@@ -51,6 +51,12 @@ const stateFile = uid => path.join(DATA, 'state-' + uid.replace(/[^a-zA-Z0-9_-]/
 function readState(uid) {
   try { return JSON.parse(fs.readFileSync(stateFile(uid), 'utf8')); } catch { return null; }
 }
+// One JPEG per workout, kept out of the state blob entirely — a photo embedded there would ride
+// along on every sync of every field, forever. The client resizes/compresses before it ever gets
+// here; this just stores whatever bytes it's given, namespaced by session uid so one user can
+// never read or overwrite another's file regardless of what id they pass.
+const PHOTO_DIR = path.join(DATA, 'photos');
+const photoFile = (uid, id) => path.join(PHOTO_DIR, uid.replace(/[^a-zA-Z0-9_-]/g, ''), String(id).replace(/[^a-zA-Z0-9_-]/g, '') + '.jpg');
 
 /* ---------- push notifications (Web Push / VAPID) ---------- */
 const vapidFile = path.join(DATA, 'vapid.json');
@@ -237,6 +243,18 @@ function readBody(req) {
   });
 }
 const b64uToBuf = s => Buffer.from(s, 'base64url');
+function readRawBody(req) {
+  return new Promise((resolve, reject) => {
+    let size = 0; const chunks = [];
+    req.on('data', d => {
+      size += d.length;
+      if (size > MAX_BODY) { reject(new Error('body too large')); req.destroy(); return; }
+      chunks.push(d);
+    });
+    req.on('end', () => resolve(Buffer.concat(chunks)));
+    req.on('error', reject);
+  });
+}
 
 /* ---------- live presence (in-memory) ---------- */
 // Clients heartbeat /api/activity while a workout is on screen; the admin dashboard reads who's
@@ -452,6 +470,45 @@ const routes = {
         updatedAt: Date.now()
       });
     } else presence.delete(user.id);
+    json(res, 200, { ok: true });
+  },
+
+  /* ---------- workout photos ---------- */
+  // id is the workout's own id (client-generated) — not looked up against the state blob,
+  // since the uid-scoped directory already makes cross-account access impossible regardless
+  // of what id is passed.
+  'POST /api/photo': async (req, res) => {
+    const user = readSession(req);
+    if (!user) return json(res, 401, { error: 'not signed in' });
+    const id = new URL(req.url, 'http://x').searchParams.get('id');
+    if (!id) return json(res, 400, { error: 'id required' });
+    let buf;
+    try { buf = await readRawBody(req); } catch (e) { return json(res, 413, { error: e.message }); }
+    if (!buf.length) return json(res, 400, { error: 'empty body' });
+    const file = photoFile(user.id, id);
+    fs.mkdirSync(path.dirname(file), { recursive: true });
+    atomicWrite(file, buf);
+    json(res, 200, { ok: true });
+  },
+  'GET /api/photo': async (req, res) => {
+    const user = readSession(req);
+    if (!user) return json(res, 401, { error: 'not signed in' });
+    const id = new URL(req.url, 'http://x').searchParams.get('id');
+    if (!id) return json(res, 400, { error: 'id required' });
+    fs.readFile(photoFile(user.id, id), (err, buf) => {
+      if (err) return json(res, 404, { error: 'not found' });
+      // immutable: a replaced photo is fetched with a new ?v= (see client), so the same URL
+      // never needs to be revalidated, only a different one requested.
+      res.writeHead(200, { 'Content-Type': 'image/jpeg', 'Cache-Control': 'private, max-age=31536000, immutable' });
+      res.end(buf);
+    });
+  },
+  'DELETE /api/photo': async (req, res) => {
+    const user = readSession(req);
+    if (!user) return json(res, 401, { error: 'not signed in' });
+    const id = new URL(req.url, 'http://x').searchParams.get('id');
+    if (!id) return json(res, 400, { error: 'id required' });
+    fs.unlink(photoFile(user.id, id), () => {});   // already gone is not an error
     json(res, 200, { ok: true });
   },
 

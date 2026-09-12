@@ -26,6 +26,7 @@ import { MOBILE, shareExport } from './lib/mobile.js'
 import { candidateExercises, buildPrompt, planFromModel } from './lib/coach.js'
 import { generate, unload } from './lib/gemma.js'
 import { substitutesFor } from './lib/substitutes.js'
+import { photoUrl, pickPhoto, uploadPhoto, deletePhoto } from './lib/photo.js'
 
 const S = () => useStore.getState().S
 const update = (...a) => useStore.getState().update(...a)
@@ -1019,11 +1020,40 @@ function DayAssign({ day, close }) {
 export const dayAssignSheet = day => ui().openSheet(close => <DayAssign day={day} close={close} />)
 
 /* ============================ workout detail ============================ */
-function WorkoutDetail({ w, close }) {
+// Shared by the finish-workout prompt and the workout detail sheet. Uploads immediately (not
+// batched into the next state sync) since the bytes never travel through S at all — only the
+// `photo` timestamp does, once the upload has actually landed.
+async function addWorkoutPhoto(id) {
+  // Photos live on the server (see api/server.js's /api/photo routes) — nothing to upload to
+  // without an account, so ask for one instead of a confusing upload failure.
+  if (!useStore.getState().user) { toast(t('Create a passkey profile to add photos — they sync with your account.')); return false }
+  const file = await pickPhoto()
+  if (!file) return false
+  try {
+    const v = await uploadPhoto(id, file)
+    update(s => { const w = s.workouts.find(x => x.id === id); if (w) w.photo = v })
+    return true
+  } catch { toast(t('Could not upload photo — try again.')); return false }
+}
+function removeWorkoutPhoto(id) {
+  update(s => { const w = s.workouts.find(x => x.id === id); if (w) w.photo = null })
+  deletePhoto(id)
+}
+
+function WorkoutDetail({ w: initial, close }) {
   const st = useStore(s => s.S)
+  const [broken, setBroken] = useState(false)
+  const w = st.workouts.find(x => x.id === initial.id) || initial
+  const hasPhoto = w.photo && !broken
   return <>
+    {hasPhoto && <img className="exmedia" style={{ width: '100%', maxHeight: 240, objectFit: 'cover', display: 'block' }}
+      src={photoUrl(w.id, w.photo)} onError={() => setBroken(true)} />}
     <h3>{w.name}</h3>
     <div className="muted small" style={{ marginBottom: 12 }}>{[fmtDate(w.d, true), ...durPart(w.end - w.start), fmtVol(w.vol, st.unit), ...(w.bw ? [fmtNum(w.bw) + ' ' + st.unit] : [])].join(' · ')}</div>
+    <div className="row" style={{ gap: 8, marginBottom: 14 }}>
+      <Button size="sm" icon="camera" onClick={async () => { setBroken(false); await addWorkoutPhoto(w.id) }}>{hasPhoto ? t('Change photo') : t('Add a photo')}</Button>
+      {hasPhoto && <Button size="sm" variant="danger" icon="trash" onClick={() => removeWorkoutPhoto(w.id)}>{t('Remove')}</Button>}
+    </div>
     {w.note && <div className="exnote">{w.note}</div>}
     {w.entries.map((e, i) => {
       const ex = EXIDX[e.id]
@@ -1036,7 +1066,7 @@ function WorkoutDetail({ w, close }) {
           {e.target && e.target.note && <div className="ss dim" style={{ whiteSpace: 'pre-wrap' }}>{e.target.note}</div>}</div>
       </div>
     })}
-    <Button variant="danger" onClick={() => confirmSheet({ title: t('Delete workout?'), message: t('This removes it from your history for good.'), confirmText: t('Delete'), danger: true, onConfirm: () => { update(s => { s.workouts = s.workouts.filter(x => x.id !== w.id) }); close(); toast(t('Workout deleted')) } })}>{t('Delete workout')}</Button>
+    <Button variant="danger" onClick={() => confirmSheet({ title: t('Delete workout?'), message: t('This removes it from your history for good.'), confirmText: t('Delete'), danger: true, onConfirm: () => { if (w.photo) deletePhoto(w.id); update(s => { s.workouts = s.workouts.filter(x => x.id !== w.id) }); close(); toast(t('Workout deleted')) } })}>{t('Delete workout')}</Button>
   </>
 }
 export const workoutDetailSheet = w => ui().openSheet(close => <WorkoutDetail w={w} close={close} />)
@@ -1087,8 +1117,11 @@ export const calendarSheet = start => ui().openSheet(close => <Calendar start={s
 export function WorkoutRow({ w, onClick }) {
   const st = useStore(s => s.S)
   const glyph = glyphOf((st.routines.find(r => r.id === w.routineId) || {}).emoji)
+  const [broken, setBroken] = useState(false)
   return <div className="item" onClick={onClick}>
-    <span className="lrow-i" style={{ width: 34, height: 34, borderRadius: 8, fontSize: 19 }}><Icon name={glyph} /></span>
+    {w.photo && !broken
+      ? <img className="thumb" style={{ width: 34, height: 34, borderRadius: 8 }} src={photoUrl(w.id, w.photo)} onError={() => setBroken(true)} />
+      : <span className="lrow-i" style={{ width: 34, height: 34, borderRadius: 8, fontSize: 19 }}><Icon name={glyph} /></span>}
     <div className="grow"><div className="tt">{w.name}</div>
       <div className="ss">{[fmtDate(w.d, true), ...durPart(w.end - w.start), t('{0} sets', setsDone(w)), fmtVol(w.vol, st.unit)].join(' · ')}</div></div>
     {w.prs && w.prs.length > 0 && <span className="pr"><Icon name="trophy" />{w.prs.length} PR</span>}
@@ -1188,6 +1221,10 @@ export const workoutCompleteSheet = () => ui().openSheet(close => <WorkoutComple
 
 function FinishSummary({ w, prs, e1prs = [], close }) {
   const st = useStore(s => s.S)
+  const [broken, setBroken] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const live = st.workouts.find(x => x.id === w.id) || w
+  const hasPhoto = live.photo && !broken
   return <div style={{ textAlign: 'center', padding: '8px 0' }}>
     <div style={{ fontSize: 44, display: 'flex', justifyContent: 'center', color: 'var(--acc)' }}><Icon name="trophy" /></div>
     <h3 style={{ margin: '8px 0' }}>{t('Workout complete!')}</h3>
@@ -1204,6 +1241,12 @@ function FinishSummary({ w, prs, e1prs = [], close }) {
     <h4 className="sec" style={{ textAlign: 'left' }}>{t('What you just trained')}</h4>
     <BodyMap load={loadOfWorkouts([w])} body={st.body} />
     <div style={{ height: 14 }} />
+    {hasPhoto && <img className="exmedia" style={{ width: '100%', maxHeight: 200, objectFit: 'cover' }}
+      src={photoUrl(live.id, live.photo)} onError={() => setBroken(true)} />}
+    <Button icon="camera" disabled={busy} onClick={async () => {
+      setBusy(true); setBroken(false); await addWorkoutPhoto(w.id); setBusy(false)
+    }}>{busy ? t('Uploading…') : hasPhoto ? t('Change photo') : t('Add a photo')}</Button>
+    <div style={{ height: 8 }} />
     <Button variant="primary" onClick={() => { close(); nav('/home') }}>{t('Nice!')}</Button>
   </div>
 }
