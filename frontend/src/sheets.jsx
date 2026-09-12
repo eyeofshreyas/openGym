@@ -111,9 +111,9 @@ function BwSheet({ required, onDone, close }) {
     </>}
     {!required && recent.length > 0 && <>
       <h4 className="sec">{t('Recent weigh-ins')}</h4>
-      <div className="list" style={{ gap: 0 }}>
-        {recent.map(b => <div key={b.d} className="row between" style={{ padding: '9px 2px', borderBottom: '1px solid var(--sep)' }}>
-          <span className="small muted">{fmtDate(b.d, true)}</span>
+      <div className="sect-b">
+        {recent.map(b => <div key={b.d} className="lrow">
+          <span className="lrow-m"><span className="small muted">{fmtDate(b.d, true)}</span></span>
           <span className="row" style={{ gap: 12 }}><b>{fmtNum(b.w)} {unit}</b>
             <button className="iconbtn" style={{ width: 32, height: 30, borderRadius: 8, fontSize: 15, color: 'var(--red)' }} onClick={() => delEntry(b.d)} aria-label="delete"><Icon name="trash" /></button></span>
         </div>)}
@@ -216,8 +216,8 @@ function MeasuresSheet({ close }) {
       {t('Today') + ', ' + fmtDate(todayISO(), true) + ' · ' + unit}
     </div>
     <div className="sect-b">
-      {MEASURES.map(m => <div key={m.k} className="row between" style={{ padding: '7px 2px', borderBottom: '1px solid var(--sep)', gap: 12 }}>
-        <span className="tt" style={{ fontSize: 15 }}>{t(m.name)}</span>
+      {MEASURES.map(m => <div key={m.k} className="lrow">
+        <span className="lrow-m tt" style={{ fontSize: 15 }}>{t(m.name)}</span>
         {/* `.num` is only styled inside a stepper, so a bare NumberField renders as an
             unstyled browser box — it takes the app's field class here. */}
         <span style={{ width: 104 }}><NumberField nullable className="input" value={v[m.k]}
@@ -242,9 +242,9 @@ function MeasureHistory({ mk, close }) {
   const rows = [...(st.measures?.[mk] || [])].reverse()
   return <>
     <h3>{t(m.name)}</h3>
-    {rows.length ? <div className="list" style={{ gap: 0 }}>
-      {rows.map(e => <div key={e.d} className="row between" style={{ padding: '9px 2px', borderBottom: '1px solid var(--sep)' }}>
-        <span className="small muted">{fmtDate(e.d, true)}</span>
+    {rows.length ? <div className="sect-b">
+      {rows.map(e => <div key={e.d} className="lrow">
+        <span className="lrow-m"><span className="small muted">{fmtDate(e.d, true)}</span></span>
         <span className="row" style={{ gap: 12 }}><b>{fmtNum(e.v)} {unit}</b>
           <button className="iconbtn" style={{ width: 32, height: 30, borderRadius: 8, fontSize: 15, color: 'var(--red)' }}
             onClick={() => update(s => delMeasure(s, mk, e.d))} aria-label="delete"><Icon name="trash" /></button></span>
@@ -880,9 +880,10 @@ function PlanImport({ bundle, scheduleDefault, close }) {
         ? '{0} exercise in the file isn’t in your library and was left out.'
         : '{0} exercises in the file aren’t in your library and were left out.', bundle.dropped)}
     </div>}
-    {bundle.scheduledDays > 0 && <div className="row between" style={{ padding: '10px 2px', borderTop: '1px solid var(--sep)', borderBottom: '1px solid var(--sep)', marginBottom: 16, gap: 12 }}>
-      <div><div className="tt" style={{ fontSize: 15 }}>{t('Use this weekly schedule')}</div><div className="small dim">{t('Replaces your current Mon–Sun assignments.')}</div></div>
-      <Switch checked={schedule} onChange={setSchedule} />
+    {bundle.scheduledDays > 0 && <div className="sect-b" style={{ marginBottom: 16 }}>
+      <Row title={t('Use this weekly schedule')} subtitle={t('Replaces your current Mon–Sun assignments.')}>
+        <Switch checked={schedule} onChange={setSchedule} />
+      </Row>
     </div>}
     <Button variant="primary" onClick={apply}>{t('Add to my plan')}</Button>
     <div style={{ height: 8 }} />

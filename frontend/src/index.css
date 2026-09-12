@@ -184,6 +184,13 @@ body.resting #app{padding-bottom:calc(250px + var(--sab))}
 }
 .iconbtn:active{background:var(--surface-2);transform:scale(.92)}
 .iconbtn.on-ss{background:var(--acc-soft);color:var(--acc)}
+.iconbtn.sm{width:30px;height:30px;font-size:15px}
+
+/* a small vertical cluster of iconbtns sitting in a list row (routine-edit's superset-link
+   + reorder controls) — one sizing rule instead of one-off pixel dims on every button */
+.rowctl{display:flex;flex-direction:column;gap:2px;flex:none;align-items:center}
+.rowctl .iconbtn{width:30px;height:27px;border-radius:8px;font-size:14px}
+.rowctl .pair{display:flex;gap:2px}
 
 h4.sec{
   font-size:13px;font-weight:400;letter-spacing:-.004em;color:var(--label-2);

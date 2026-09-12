@@ -53,9 +53,9 @@ function UserDetail({ id, onChanged, close }) {
         : confirmSheet({ title: 'Disable ' + u.name + '?', message: 'They are signed out everywhere and can no longer sync or log in until re-enabled.', confirmText: 'Disable', danger: true, onConfirm: () => setDisabled(true) })}>
       {u.disabled ? 'Enable account' : 'Disable account'}</button>}
     <h4 className="sec">Workout history</h4>
-    {d.workouts.length ? <div className="list" style={{ gap: 0 }}>
-      {d.workouts.slice(0, 60).map(w => <div key={w.id} className="row between" style={{ padding: '9px 2px', borderBottom: '1px solid var(--sep)' }}>
-        <div><div className="small" style={{ fontWeight: 600 }}>{w.name}</div>
+    {d.workouts.length ? <div className="sect-b">
+      {d.workouts.slice(0, 60).map(w => <div key={w.id} className="lrow">
+        <div className="lrow-m"><div className="small" style={{ fontWeight: 600 }}>{w.name}</div>
           <div className="dim" style={{ fontSize: '.72rem' }}>{fmtDate(w.d, true)} · {fmtDur((w.end || w.start) - w.start)} · {setsDone(w)} sets{w.prs?.length ? ' · ' + w.prs.length + ' PR' : ''}</div></div>
         <span className="small muted">{fmtVol(w.vol ?? workoutVolume(w), d.unit)}</span>
       </div>)}
@@ -76,14 +76,16 @@ function InvitesCard({ invites, reload }) {
     <div className="row between"><h2 style={{ margin: 0 }}>Invite codes</h2>
       <Button variant="primary" size="sm" onClick={gen} icon="plus">Generate</Button></div>
     <div className="small muted" style={{ margin: '6px 0 10px' }}>{open.length} unused · {used.length} redeemed</div>
-    {open.map(i => <div key={i.code} className="row between" style={{ padding: '7px 2px', borderBottom: '1px solid var(--sep)' }}>
-      <span style={{ fontFamily: 'ui-monospace,SFMono-Regular,Menlo,monospace', fontWeight: 500, letterSpacing: '.06em' }}
-        onClick={() => { navigator.clipboard?.writeText(i.code).catch(() => {}); toast('Copied ' + i.code) }}>{i.code}</span>
-      <button className="iconbtn" style={{ width: 32, height: 30, borderRadius: 8, fontSize: 15, color: 'var(--red)' }} onClick={() => revoke(i.code)} aria-label="revoke"><Icon name="trash" /></button>
-    </div>)}
-    {used.map(i => <div key={i.code} className="row between dim" style={{ padding: '7px 2px', fontSize: '.8rem' }}>
-      <span style={{ fontFamily: 'monospace' }}>{i.code}</span><span>→ {i.usedByName || 'used'}</span>
-    </div>)}
+    {(open.length > 0 || used.length > 0) && <div className="sect-b">
+      {open.map(i => <div key={i.code} className="lrow">
+        <span className="lrow-m" style={{ fontFamily: 'ui-monospace,SFMono-Regular,Menlo,monospace', fontWeight: 500, letterSpacing: '.06em' }}
+          onClick={() => { navigator.clipboard?.writeText(i.code).catch(() => {}); toast('Copied ' + i.code) }}>{i.code}</span>
+        <button className="iconbtn" style={{ width: 32, height: 30, borderRadius: 8, fontSize: 15, color: 'var(--red)' }} onClick={() => revoke(i.code)} aria-label="revoke"><Icon name="trash" /></button>
+      </div>)}
+      {used.map(i => <div key={i.code} className="lrow dim" style={{ fontSize: '.8rem' }}>
+        <span className="lrow-m" style={{ fontFamily: 'monospace' }}>{i.code}</span><span>→ {i.usedByName || 'used'}</span>
+      </div>)}
+    </div>}
     {!open.length && !used.length && <div className="dim small">No codes yet — generate one to invite someone.</div>}
   </div>
 }
@@ -125,11 +127,13 @@ export default function Admin() {
 
     {liveUsers.length > 0 && <div className="card" style={{ borderColor: 'var(--acc)' }}>
       <h2 className="row" style={{ margin: '0 0 8px', gap: 6 }}><Icon name="dot" style={{ fontSize: 10, color: 'var(--green)' }} />Training now</h2>
-      {liveUsers.map(u => <div key={u.id} className="row between" style={{ padding: '8px 2px', borderBottom: '1px solid var(--sep)' }} onClick={() => openUser(u.id)}>
-        <div><div className="small" style={{ fontWeight: 600 }}>{u.name}</div>
-          <div className="dim" style={{ fontSize: '.72rem' }}>{u.live.name} · ex {u.live.exIdx}/{u.live.exTotal} · {u.live.setsDone}/{u.live.setsTotal} sets</div></div>
-        <span className="tag acc">{dur(Date.now() - u.live.startedAt)}</span>
-      </div>)}
+      <div className="sect-b">
+        {liveUsers.map(u => <button key={u.id} className="lrow tap" onClick={() => openUser(u.id)}>
+          <span className="lrow-m"><span className="small" style={{ fontWeight: 600 }}>{u.name}</span>
+            <span className="dim" style={{ fontSize: '.72rem' }}>{u.live.name} · ex {u.live.exIdx}/{u.live.exTotal} · {u.live.setsDone}/{u.live.setsTotal} sets</span></span>
+          <span className="tag acc">{dur(Date.now() - u.live.startedAt)}</span>
+        </button>)}
+      </div>
     </div>}
 
     <InvitesCard invites={invites} reload={loadInvites} />
