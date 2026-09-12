@@ -264,6 +264,52 @@ const R = {
     ['0605', 4, 15, { repsMin: 12 }],           // lever standing calf raise
     ['0472', 3, 15],                             // hanging leg raise — abs, hip flexors
   ]},
+
+  /* ---- calisthenics: no load to add, so repsMax caps the rep climb and hands progress
+     to a new set instead (the engine's existing bodyweight rule, issue #33) ---- */
+  calFound: { name: 'Calisthenics', glyph: 'figureStrength', prog: 'double', ex: [
+    ['0493', 3, 8, { repsMax: 15 }],                    // incline push-up
+    ['0688', 3, 8, { repsMax: 15 }],                    // scapular pull-up
+    ['2368', 3, 8, { side: true, repsMax: 15 }],        // split squats
+    ['0489', 3, 12, { repsMax: 20 }],                   // hyperextension — lower back
+    ['3419', 3, 8, { mode: 'time', sec: 8, prog: 'time' }], // l-sit on floor — hold
+  ]},
+  calPush: { name: 'Calisthenics Push', glyph: 'figureStrength', prog: 'double', ex: [
+    ['0662', 4, 10, { repsMax: 20 }],                   // push-up
+    ['0251', 3, 8, { repsMax: 15 }],                    // chest dip
+    ['0725', 3, 5, { repsMax: 10 }],                    // single arm push-up
+  ]},
+  calPull: { name: 'Calisthenics Pull', glyph: 'pullup', prog: 'double', ex: [
+    ['0652', 4, 8, { repsMax: 15 }],                    // pull-up
+    ['0688', 3, 8, { repsMax: 15 }],                    // scapular pull-up — traps
+    ['0472', 3, 10, { repsMax: 20 }],                   // hanging leg raise
+  ]},
+  calLegs: { name: 'Calisthenics Legs', glyph: 'legs', prog: 'double', ex: [
+    ['2368', 4, 10, { side: true, repsMax: 20 }],       // split squats
+    ['1460', 3, 12, { side: true, repsMax: 20 }],       // walking lunge
+    ['0489', 3, 15, { repsMax: 20 }],                   // hyperextension — lower back
+    ['3419', 3, 15, { mode: 'time', sec: 15, prog: 'time' }], // l-sit on floor — hold
+  ]},
+  calSkillPush: { name: 'Push Skills', glyph: 'bolt', prog: 'double', ex: [
+    ['3294', 4, 6, { repsMax: 12 }],                    // archer push-up
+    ['3327', 3, 5, { repsMax: 10 }],                    // full planche push-up
+    ['0471', 3, 5, { repsMax: 10 }],                    // handstand push-up
+    ['3298', 3, 10, { mode: 'time', sec: 10, prog: 'time' }], // straddle planche — hold
+  ]},
+  calSkillPull: { name: 'Pull Skills', glyph: 'pullup', prog: 'double', ex: [
+    ['0631', 3, 3, { repsMax: 6 }],                     // muscle up
+    ['3293', 3, 5, { repsMax: 10 }],                    // archer pull-up
+    ['0688', 3, 8, { repsMax: 15 }],                    // scapular pull-up — traps
+    ['0677', 3, 8, { repsMax: 15 }],                    // ring dips
+    ['3296', 3, 10, { mode: 'time', sec: 10, prog: 'time' }], // front lever — hold
+  ]},
+  calSkillLegs: { name: 'Legs & Core Skills', glyph: 'legs', prog: 'double', ex: [
+    ['1759', 3, 6, { side: true, repsMax: 10 }],        // single leg squat (pistol)
+    ['2368', 3, 10, { side: true, repsMax: 20 }],       // split squats
+    ['0489', 3, 15, { repsMax: 20 }],                   // hyperextension — lower back
+    ['0472', 3, 12, { repsMax: 20 }],                   // hanging leg raise
+    ['3419', 3, 20, { mode: 'time', sec: 20, prog: 'time' }], // l-sit on floor — hold
+  ]},
 }
 
 // The starter plan's three routines keep stable keys so ppl3's week can point at them without
@@ -315,6 +361,26 @@ export const PROGRAMS = [
     blurb: 'Six days over three sessions, each hit twice a week. High volume, no easy weeks.',
     routines: ['arnChestBack', 'arnShouldersArms', 'arnLegsAbs'],
     week: { 1: 'arnChestBack', 2: 'arnShouldersArms', 3: 'arnLegsAbs', 4: 'arnChestBack', 5: 'arnShouldersArms', 6: 'arnLegsAbs' },
+  },
+
+  /* ---- calisthenics: no equipment beyond a bar, load added by rep count and set count ---- */
+  {
+    key: 'calFound3', glyph: 'figureStrength', name: 'Calisthenics Foundations', level: 'Beginner',
+    blurb: 'Three days, one full-body session — push-up, pull-up, squat and a hold, every time.',
+    routines: ['calFound'],
+    week: { 1: 'calFound', 3: 'calFound', 5: 'calFound' },
+  },
+  {
+    key: 'calBuild3', glyph: 'pullup', name: 'Calisthenics Builder', level: 'Intermediate',
+    blurb: 'Push / pull / legs with just body weight — the step up once push-ups and pull-ups stop being hard.',
+    routines: ['calPush', 'calPull', 'calLegs'],
+    week: { 1: 'calPush', 3: 'calPull', 5: 'calLegs' },
+  },
+  {
+    key: 'calSkill3', glyph: 'bolt', name: 'Calisthenics Skills', level: 'Advanced',
+    blurb: 'Muscle-ups, levers and planches — skill work for a body that has outgrown the basics.',
+    routines: ['calSkillPush', 'calSkillPull', 'calSkillLegs'],
+    week: { 1: 'calSkillPush', 3: 'calSkillPull', 5: 'calSkillLegs' },
   },
 ]
 
