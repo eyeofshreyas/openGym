@@ -1,15 +1,12 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="660" height="190" viewBox="0 0 660 190" role="img" aria-label="openGym — self-hosted gym & body-weight tracker">
-  <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#12151b"/>
-      <stop offset="1" stop-color="#0c0e12"/>
-    </linearGradient>
-  </defs>
-  <rect width="660" height="190" rx="22" fill="url(#bg)"/>
-  <rect x="1.5" y="1.5" width="657" height="187" rx="20.5" fill="none" stroke="#2b3140" stroke-width="3"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="660" height="190" viewBox="0 0 660 190" role="img" aria-label="openGym — self-hosted gym &amp; body-weight tracker">
+  <!-- "Meet Day" scoreboard theme: flat near-black panel, square corners, hairline edge,
+       no glow — same tokens as frontend/src/index.css (bg, sep, red). -->
+  <rect width="660" height="190" rx="4" fill="#0a0a0c"/>
+  <rect x="1" y="1" width="658" height="188" rx="3.5" fill="none" stroke="rgba(141,143,149,.34)" stroke-width="1.5"/>
 
-  <!-- dumbbell mark — same geometry as frontend/resources/icon.svg, centred on the origin -->
-  <g transform="translate(122,96) scale(0.45)" fill="#30d158">
+  <!-- dumbbell mark — same geometry as frontend/resources/icon.svg, centred on the origin,
+       red accent on black like the app/home-screen icon -->
+  <g transform="translate(122,96) scale(0.45)" fill="#d1362f">
     <rect x="-86" y="-22" width="172" height="44" rx="10"/>
     <rect x="-130" y="-92" width="52" height="184" rx="18"/>
     <rect x="78" y="-92" width="52" height="184" rx="18"/>
@@ -17,10 +14,8 @@
     <rect x="144" y="-56" width="40" height="112" rx="16"/>
   </g>
 
-  <!-- wordmark + tagline -->
-  <text x="224" y="86" font-family="-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif" font-size="62" font-weight="800" letter-spacing="-2">
-    <tspan fill="#eef1f6">open</tspan><tspan fill="#30d158">Gym</tspan>
-  </text>
-  <text x="226" y="120" font-family="-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif" font-size="20.5" font-weight="600" fill="#8b94a7">Self-hosted gym &amp; body-weight tracker</text>
-  <text x="226" y="146" font-family="-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif" font-size="14" font-weight="500" fill="#5c6475">passkey login  ·  own your data  ·  docker  ·  AGPL</text>
+  <!-- wordmark + tagline — one colour, uppercase, condensed, the way .hdr h1 sets it -->
+  <text x="224" y="84" font-family="-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif" font-size="58" font-weight="800" letter-spacing="-1.5" fill="#eef0e6">OPENGYM</text>
+  <text x="226" y="120" font-family="-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif" font-size="20.5" font-weight="600" fill="rgba(238,240,230,.62)">Self-hosted gym &amp; body-weight tracker</text>
+  <text x="226" y="146" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="13.5" font-weight="500" fill="rgba(238,240,230,.34)">passkey login  ·  own your data  ·  docker  ·  AGPL</text>
 </svg>
