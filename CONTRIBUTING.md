@@ -64,9 +64,9 @@ for; if you'd rather point Vite at a running stack, set `API_TARGET=http://local
 
 | You have | Goes to |
 | --- | --- |
-| A question, or self-hosting that won't behave | [Discussions → Q&A](https://github.com/DuarteSantos8/openGym/discussions/categories/q-a) |
-| An idea you're not sure about yet | [Discussions → Ideas](https://github.com/DuarteSantos8/openGym/discussions/categories/ideas) |
-| A reproducible bug | [Issues](https://github.com/DuarteSantos8/openGym/issues) |
+| A question, or self-hosting that won't behave | [Discussions → Q&A](https://github.com/eyeofshreyas/openGym/discussions/categories/q-a) |
+| An idea you're not sure about yet | [Discussions → Ideas](https://github.com/eyeofshreyas/openGym/discussions/categories/ideas) |
+| A reproducible bug | [Issues](https://github.com/eyeofshreyas/openGym/issues) |
 | A change you've already built | A pull request |
 
 An answered question in Q&A is worth more than the same answer buried in a closed issue — the
