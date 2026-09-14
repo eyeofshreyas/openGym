@@ -153,17 +153,21 @@ mobile app is the install-and-done flavor.
 
 ## How it works
 
-```
-┌─────────────┐        ┌──────────────────────────────┐
-│  Your phone │──HTTPS─▶│  web  (nginx)                │
-│  / laptop   │        │   ├─ serves the built app    │
-└─────────────┘        │   └─ proxies /api ──────────┐│
-                       └──────────────────────────────┘│
-                                                        ▼
-                                        ┌──────────────────────────┐
-                                        │  api  (Node + WebAuthn)  │
-                                        │   └─ ./data (JSON files) │
-                                        └──────────────────────────┘
+```mermaid
+flowchart LR
+  phone["Your phone / laptop"]
+
+  subgraph web["web — nginx"]
+    app["built frontend\n(static files)"]
+  end
+
+  subgraph api["api — Node + WebAuthn"]
+    data[("./data\nJSON files")]
+  end
+
+  phone -- HTTPS --> web
+  web -- "/api" --> api
+  api --- data
 ```
 
 - **frontend/** — React + Vite (React Router + Zustand), built to static files **inside Docker**
