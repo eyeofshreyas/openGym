@@ -10,6 +10,9 @@ Plan your week, run guided workouts, track every set and your body weight over t
 on your phone, synced across devices, behind your own passkey login.
 No account on someone else's server, no subscription, no ads. Just `docker compose up`.
 
+A fork of [**DuarteSantos8/openGym**](https://github.com/DuarteSantos8/openGym) — all credit
+for the original app goes to [Duarte Santos](https://github.com/DuarteSantos8).
+
 <br>
 
 [![License: AGPL v3](https://img.shields.io/badge/license-AGPL--3.0-30d158?style=flat-square)](LICENSE)
