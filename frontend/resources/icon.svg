@@ -2,13 +2,14 @@
   <!-- App-icon source == the PWA icon (public/icon-512.png), geometry traced 1:1 so the
        native app, the home-screen PWA and the website favicon all show the same icon.
        Generate platform icons + splash via `npx @capacitor/assets generate` — docs/MOBILE.md.
-       Inverted on purpose: the default accent green from index.css as the tile, mark in
-       black. A dark icon vanishes in a home-screen grid of dark icons; this one doesn't.
+       Inverted on purpose: the red accent from index.css as the tile, mark in white (the
+       app's own on-acc rule for red — black fails contrast on it). A dark icon vanishes in
+       a home-screen grid of dark icons; this one doesn't.
        ponytail: every mark stays inside the maskable safe zone (a centred circle of r=205,
        i.e. 80% of 512) so a circular Android mask can't clip a collar off. Widen only if
        manifest.json drops the "maskable" purpose. -->
-  <rect width="512" height="512" fill="#30d158"/>
-  <g fill="#000000">
+  <rect width="512" height="512" fill="#d1362f"/>
+  <g fill="#ffffff">
     <rect x="170" y="234" width="172" height="44" rx="10"/>
     <rect x="126" y="164" width="52" height="184" rx="18"/>
     <rect x="334" y="164" width="52" height="184" rx="18"/>
