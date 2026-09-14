@@ -54,9 +54,39 @@ disappear when the startup does. openGym is the opposite: **it runs on your box,
 stays in a folder you control, and it's yours to fork.** It still feels modern — installable
 as a home-screen app, passkey sign-in, offline support, sync across your phone and laptop.
 
+## Since v1.0.0
+
+The [first release](CHANGELOG.md) was a solid tracker with the basics covered. Since then:
+
+- 📈 **Real programming, not just automatic progression** — linear, Greyskull LP and double
+  progression handle week-to-week; **percentage / training-max cycles** (5/3/1, Boring But Big)
+  now sit on top for anyone periodizing off a training max
+- 🏋️ **10 starter programs instead of one** — PPL, Upper/Lower, Full Body, PHUL, PHAT, Arnold
+  Split, and a 3-tier calisthenics track (Foundations → Builder → Skills)
+- 💪 **Bodyweight training done properly** — no weight prompt on a push-up, reps-per-side, an
+  added-weight belt when there is one, a rep ceiling that adds a set instead of climbing forever
+- 🎯 **Effort tracking that's actually read back** — RIR/RPE per set now feeds Stats (weekly
+  average, a spread chart, a hard-sets muscle map) instead of sitting unused in a set label
+- 📊 **A real per-exercise stats page** — Summary / History / How-to tabs and a PRs block
+  (heaviest weight, best est. 1RM, best set/session volume), replacing the old single-scroll sheet
+- 📷 **Workout cover photos** with a Strava-style branded share card, generated on-device
+- 📏 **Body measurements** alongside body weight, and a **plate calculator** that says exactly
+  what to load
+- 📝 **Notes** — a form cue per exercise that travels with the plan, a note per workout that
+  stays in its history
+- 💪 **Muscle map** — a front/back body diagram shaded by training volume, naming the muscles
+  you haven't touched
+- 🌍 12 languages, an admin dashboard, push notifications, importers from FitNotes/Strong/
+  Hevy/Apple Health, and a **standalone Android app** — none of which existed at launch
+- 🎨 **Redesigned twice** — v1.2.0's hand-drawn icon set and type system, then a retint into the
+  current "Meet Day" scoreboard look (square panels, Bebas Neue headlines, attempt-light week strip)
+
+Full history in [CHANGELOG.md](CHANGELOG.md).
+
 ## Features
 
 - ⚖️ **Body-weight tracking** — interactive chart with a goal line you set, gains/losses colored by whether they move toward it
+- 📏 **Body measurements** — neck to calf, kept the same way as body weight, in cm or inches to match your unit
 - 🏋️ **Weekly plan** — a routine per weekday, over a library of **1,324 exercises** (searchable, with animated demos)
 - 🗓️ **Reschedule any day** — sick, missed a session, or fewer gym days this week? Move a workout to another day without touching your weekly plan
 - ▶️ **Guided workouts** — it knows what day it is and starts today's session; asks your body weight first, pre-fills your weights from last time, rest timer, PR detection, per-exercise weight tracking
@@ -64,11 +94,16 @@ as a home-screen app, passkey sign-in, offline support, sync across your phone a
 - 🔗 **Supersets** — build them, and log them back-to-back with a rest only after the pair
 - ⏱️ **Timed exercises** — planks, hangs, wall sits and loaded carries are logged by time, not reps, with a work timer that counts the set itself (separate from the rest timer) and logs the time you actually held. They can carry weight too
 - 📈 **Progression that follows a rule** — pick one per routine, override it per exercise: linear, **Greyskull LP** (AMRAP top set, double jumps, 10 % resets), double progression through a rep range, or adding time. Your weights are already right when the session opens, and every target says *why* it's that number. Missed reps never advance the load, stalls trigger a deload, and bodyweight exercises progress in reps instead
+- 🎯 **Percentage / training-max cycles** — 5/3/1 and Boring But Big, run off a training max the app derives from the cycles you've finished, prescribed set by set with the last set of each week taken as far as it goes
 - 💪 **Estimated 1RM** — per exercise, from your best eligible set (it names which one), with its own progress curve and a calculator for sets you haven't done. Won't guess above 12 reps
+- 📊 **A real stats page per exercise** — Summary, History and How-to tabs from the exercise library: the progress chart, a Personal Records block (heaviest weight, best est. 1RM, best set volume, best session volume), and every past workout that touched it
+- 🔩 **Plate calculator** — exact plates per side, in kg or lb, for the bar and plates you actually have
+- 📝 **Notes** — a form cue per exercise, written once in the routine and shown while you train it; a free-text note per workout, kept in its history
 - 🎯 **Effort per set, in your scale** — an optional third column rating how hard a set was, as **RIR** (reps left in the tank) or **RPE** (the same judgement on a 10-point scale). Off by default; each set keeps the scale it was logged with, and nothing else reads the value — your progression and 1RM are unaffected
 - 💪 **Bodyweight exercises, logged as bodyweight** — push-ups, pull-ups, dips and 300-odd others arrive knowing they carry no load, so there's no weight column and no working-weight prompt: one stepper, log the reps. Add a dip belt and it reads as an addition, and progression goes back to following the weight. Without one, reps climb — and past a ceiling you set, a set is added instead of a rep, up to the point where the honest advice is load or a harder variation
 - ↔️ **Reps per side** — for lunges, single-arm rows and the rest. You log the total, the app shows the split ("8 per side"), and the target steps in twos so it never lands on a number one side can't have
 - 🏃 **Cardio** — log time + speed, not just weight × reps
+- 📷 **Workout cover photos** — attach one when you finish a session; it becomes the thumbnail in your history and shares as a Strava-style branded card (photo, stats, date), generated on-device
 - 📤 **Share a plan** — send someone your routines and week schedule as a small file (no workouts, no weigh-ins), or print it as a clean PDF. Importing merges, so their plan is never overwritten
 - 🔧 **Filter by equipment** — narrow the library to what you actually own; the options adapt to what you've picked, so every combination on screen has results behind it
 - ✨ **Your own exercises** — a name and a body part is enough; they behave like built-in ones everywhere, with an optional description instead of an animation
@@ -77,7 +112,7 @@ as a home-screen app, passkey sign-in, offline support, sync across your phone a
 - 🔔 **Push notifications** — rest-timer alerts even with the app closed, plus an optional reminder on days you have a workout planned but haven't logged one. Opt in per profile; keys are generated on first run, nothing to configure
 - 🔑 **Passkeys, not passwords** — Face ID / Touch ID / fingerprint login; each profile keeps its own data, synced across devices
 - 🛠️ **Admin dashboard** (optional) — for whoever runs the instance: who's training right now, per-user history, disable accounts, and invite-only signup. Off by default, so a fresh instance stays open with no admin
-- 🎨 **Designed, not assembled** — light/dark themes and 8 accent colors saved to your profile, over a hand-drawn icon set instead of emoji, so it looks the same on every phone
+- 🎨 **Designed, not assembled** — a "Meet Day" scoreboard look (square panels, Bebas Neue headlines, an attempt-light week strip), light/dark themes and 8 accent colors saved to your profile, over a hand-drawn icon set instead of emoji, so it looks the same on every phone
 - 🌍 **12 languages** — full UI translation (EN, DE, ES, FR, IT, PT, PL, TR, RU, ZH, KO, HI); exercise instructions localized in 10 of them, loaded on demand so the app stays fast
 - 📥 **Bring your history with you** — import from **FitNotes** (Android and iOS), **Strong** and **Hevy**, or body weight straight out of an **Apple Health** export. Exercise names are matched against the library and anything unrecognised becomes one of your own exercises, so nothing in the file is dropped
 - 📦 **Yours to keep** — one-tap JSON export/import, guest mode, **no telemetry**
@@ -164,12 +199,14 @@ Rough, community-driven — ideas and PRs welcome:
 - [x] Standalone mobile app — Android APK to sideload ([download](https://opengym.duarte-santos.ch)); on iOS as a self-hosted PWA (no store listings planned)
 - [x] Automatic progression programs (linear, Greyskull LP, double progression) with stalls and deloads
 - [x] Estimated 1RM per exercise
-- [ ] Percentage / training-max programming (5/3/1-style) on top of the progression engine
-- [ ] More starter plans (upper/lower, full-body, 5×5)
+- [x] Percentage / training-max programming (5/3/1, Boring But Big) on top of the progression engine
+- [x] More starter plans — Upper/Lower, Full Body, PHUL, PHAT, Arnold Split, and a 3-tier calisthenics track
 - [x] Importers from FitNotes / Strong / Hevy (including the RPE they record), and body weight from Apple Health
 - [x] Effort per set — RIR or RPE, whichever scale you think in
-- [ ] Body measurements (waist, arms…) alongside weight
-- [ ] Per-exercise notes & plate calculator
+- [x] Body measurements (waist, arms…) alongside weight
+- [x] Per-exercise notes & plate calculator
+- [ ] On-device AI plan builder (Android, experimental) — generates a plan from a locally installed Gemma model; wiring is in place, real on-device generation isn't yet
+- [ ] Strength-level benchmarks and a leaderboard — needs bodyweight-relative standards data and other users' data respectively, so deliberately deferred rather than done half-way
 - [ ] Exercise instructions in German & Portuguese (UI is translated; upstream dataset doesn't ship these yet)
 
 ## Tech
